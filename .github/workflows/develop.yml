@@ -79,6 +79,6 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
 
       - name: Deploy develop
-        run: ssh dev "cd /home/$SSH_USER/emojiracing_be && ./deploy.sh"
+        run: ssh dev "cd /home/$SSH_USER/soljeets_be && ./deploy.sh"
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
