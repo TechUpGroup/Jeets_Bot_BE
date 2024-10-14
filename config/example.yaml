@@ -1,0 +1,38 @@
+node_env: development
+cron: true
+
+server:
+  port: 8080
+  host: 0.0.0.0
+  url: http://localhost/
+  web_url: http://localhost:8080
+
+swagger:
+  name: Backend API
+  doc_url: /api/docs
+  description: Backend 
+  version: 1.0
+  is_auth: false
+  username: root
+  password: 123456
+
+mongodb:
+  uri: mongodb://localhost:27017/jeets_bot_dev
+
+i18n:
+  fallback_language: en
+
+jwt:
+  secret: HLp6c/36IsriJpI
+  access_expiration_minutes: 1440
+  refresh_expiration_days: 30
+
+aws:
+  access_key_id: ''
+  secret_access_key: ''
+  s3_bucket: jeets
+  s3_path: tokens
+  region_name: us-east-1
+  domain: 'jeets.s3.amazonaws.com'
+
+authAdmin: ""

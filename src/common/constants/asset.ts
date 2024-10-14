@@ -1,0 +1,13 @@
+export enum TOPIC {
+  TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+  OwnershipTransferred = "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+}
+
+export const ETH_DECIMAL_SYMBOL = 18
+export const TOKEN_DECIMAL_SYMBOL = 18
+
+export const ETH_DECIMAL = 1e18;
+export const TOKEN_DECIMAL = 1e18;
+export const INIT_PRICE = 0.00000000025;
+export const THRESHOLD_MARKET_CAP = 690;
+export const TOTAL_SUPPLY = "1000000000000000000000000000";
