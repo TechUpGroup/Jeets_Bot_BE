@@ -23,7 +23,7 @@ export class UsersController {
   }
 
   @Auth()
-  @Post("connect/telegram")
+  @Post("telegram/connect")
   connectTelegram(@User() user: UsersDocument, @Body() data: any) {
     return this.usersService.connectTelegram(user, data);
   }
