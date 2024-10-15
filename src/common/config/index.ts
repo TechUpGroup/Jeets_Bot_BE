@@ -6,7 +6,7 @@ import { isNil } from "lodash";
 import { Schema } from "mongoose";
 import mongoosePaginate from "mongoose-paginate-v2";
 
-import { CacheModuleOptions } from "@nestjs/common";
+import { CacheModuleOptions } from "@nestjs/cache-manager";
 import { MongooseModuleOptions } from "@nestjs/mongoose";
 import { ContractName } from "common/constants/contract";
 
@@ -124,10 +124,19 @@ class Config {
     };
   }
 
+  get network_supported() {
+    const networks = this.getArray<Network>("network_supported");
+    const allNetworks = Object.values(Network);
+    const networkSupport = networks.filter((network) => allNetworks.includes(network));
+    if (networkSupport.length !== networks.length) {
+      throw new Error(`network_supported environment variable: ${networks}  is not Network enum`);
+    }
+    return networkSupport;
+  }
+
   getBlockchainPrivateKey(network: Network) {
     return {
-      operater: this.getString(`blockchain.${network}.operater`),
-      authority: this.getString(`blockchain.${network}.authority`),
+      operator: this.getString(`blockchain.${network}.operator`),
     }
   }
 
@@ -149,10 +158,10 @@ class Config {
 
   getContract(network: Network, key: ContractName) {
     const address = this.getBlockChainInfo(network, `contract.${key}.address`);
-    const blocknumber_creator = this.getBlockChainInfo(network, `contract.${key}.blocknumber_creator`);
+    const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
     return {
       address,
-      blocknumber_creator: Number(blocknumber_creator || 0),
+      tx_creator: tx_creator || "",
     };
   }
 

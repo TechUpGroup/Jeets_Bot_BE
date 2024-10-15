@@ -10,6 +10,11 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { AuthModule } from "modules/auth/auth.module";
 import { UsersModule } from "modules/users/users.module";
 import { CacheModule } from "@nestjs/cache-manager";
+import { ContractsModule } from "modules/contracts/contracts.module";
+import { JobModule } from "modules/_jobs/job.module";
+import { HistoriesModule } from "modules/histories/histories.module";
+import { VotingsModule } from "modules/votings/votings.module";
+import { MissionsModule } from "modules/missions/missions.module";
 
 @Module({
   imports: [
@@ -26,10 +31,15 @@ import { CacheModule } from "@nestjs/cache-manager";
       },
       resolvers: [{ use: QueryResolver, options: ["lang"] }, AcceptLanguageResolver],
     }),
+    JobModule,
     SharedModule,
     // app modules
     AuthModule,
     UsersModule,
+    ContractsModule,
+    HistoriesModule,
+    MissionsModule,
+    VotingsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: I18nAllExceptionFilter },

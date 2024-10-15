@@ -24,13 +24,7 @@ export class UsersController {
 
   @Auth()
   @Post("update")
-  @UseInterceptors(FileInterceptor("file"))
-  @ApiConsumes("multipart/form-data")
-  @ApiBody({
-    description: 'File upload',
-    type: UpdateUserDto,
-  })
-  async update(@User() user: UsersDocument, @UploadedFile() file: Express.Multer.File, @Body() body: UpdateUserDto) {
-    return this.usersService.updateUser(user, file, body);
+  async update(@User() user: UsersDocument, @Body() body: UpdateUserDto) {
+    return this.usersService.updateUser(user, body);
   }
 }

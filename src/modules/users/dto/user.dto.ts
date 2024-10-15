@@ -20,19 +20,11 @@ export class ConnectDto {
 }
 
 export class UpdateUserDto {
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @IsString()
-  @MaxLength(50)
-  username: string;
+  telegram_username: string;
 
-  @ApiPropertyOptional({ type: "string", format: "binary" })
-  @IsOptional()
-  file: Express.Multer.File;
-
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @IsString()
-  @MaxLength(1000)
-  bio: string;
+  twitter_username: string;
 }

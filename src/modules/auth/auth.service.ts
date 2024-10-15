@@ -17,7 +17,7 @@ export class AuthService {
   constructor(private readonly tokenService: TokensService, private readonly userService: UsersService) {}
 
   async getNonce(address: string) {
-    const user = await this.userService.findOrCreateUserByAddress(address, Network.scroll);
+    const user = await this.userService.findOrCreateUserByAddress(address, Network.solana);
     return {
       address: user.address,
       nonce: user.nonce,

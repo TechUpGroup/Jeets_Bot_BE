@@ -149,16 +149,7 @@ export class UsersService {
     return this.usersModel.bulkWrite(bulkUpdate);
   }
 
-  async updateUser(user: UsersDocument, file: Express.Multer.File, body: UpdateUserDto) {
-    let avatar;
-    let username;
-    if (file) {
-      const fileName = `${user.address.substring(user.address.length - 4)}`;
-      avatar = await this.s3Service.uploadImage(fileName, file);
-    }
-    if (body?.username) {
-      username = `${user.username}`;
-    }
-    return this.usersModel.updateOne({ _id: user._id }, { ...body, avatar, username });
+  async updateUser(user: UsersDocument, body: UpdateUserDto) {
+    return this.usersModel.updateOne({ _id: user._id }, { ...body });
   }
 }
