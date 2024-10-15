@@ -1,5 +1,4 @@
 import BigNumber from "bignumber.js";
-import { TAB } from "common/enums/common";
 import ShortUniqueId from "short-unique-id";
 
 const uid = new ShortUniqueId({ dictionary: "hex", length: 15 });
@@ -143,62 +142,3 @@ export const generateRandomCode = () => {
   }
   return randomString;
 };
-
-export const getStartTime = (tab: TAB) => {
-  const timestamp = new Date();
-  if (tab === TAB.DAILY) {
-    timestamp.setHours(0, 0, 0, 0);
-    return timestamp;
-  }
-  if (tab === TAB.WEEKLY) {
-    const day = timestamp.getDay();
-    const diff = (day === 0 ? -6 : 1) - day;
-    timestamp.setDate(timestamp.getDate() + diff);
-    timestamp.setHours(0, 0, 0, 0);
-    return timestamp;
-  }
-  if (tab === TAB.MONTH) {
-    timestamp.setDate(1);
-    timestamp.setHours(0, 0, 0, 0);
-    return timestamp;
-  }
-  return timestamp;
-};
-
-// export const getMilestoneAirdropMarketCap = (usdMarketCap: number, currentMarketCapMilestone: number) => {
-//   for (const key of Object.keys(MARKET_CAP_AIRDROP).reverse()) {
-//     if (BigNumber(usdMarketCap).gte(key) && BigNumber(key).gt(currentMarketCapMilestone)) {
-//       return +key
-//     }
-//   }
-//   return currentMarketCapMilestone
-// };
-
-// export const getMilestoneAirdropDailyVolume = (usdSolAmount: number, currentDailyVolumeMilestone: number) => {
-//   for (const key of Object.keys(DAILY_VOLUME_AIRDROP).reverse()) {
-//     if (BigNumber(usdSolAmount).gte(key) && BigNumber(key).gt(currentDailyVolumeMilestone)) {
-//       return +key
-//     }
-//   }
-//   return currentDailyVolumeMilestone
-// };
-
-// export const getRewardAirdropMarketCap = (marketCapAirdropProcessing: number, currentMarketCapMilestone: number) => {
-//   let total = 0;
-//   for (const [key, value] of Object.entries(MARKET_CAP_AIRDROP)) {
-//     if (BigNumber(key).gt(marketCapAirdropProcessing) && BigNumber(key).lte(currentMarketCapMilestone)) {
-//       total = total + value;
-//     }
-//   }
-//   return total;
-// };
-
-// export const getRewardAirdropDailyVolume = (dailyVolumeAirdropProcessing: number, currentDailyVolumeMilestone: number) => {
-//   let total = 0;
-//   for (const [key, value] of Object.entries(DAILY_VOLUME_AIRDROP)) {
-//     if (BigNumber(key).gt(dailyVolumeAirdropProcessing) && BigNumber(key).lte(currentDailyVolumeMilestone)) {
-//       total = total + value;
-//     }
-//   }
-//   return total;
-// };

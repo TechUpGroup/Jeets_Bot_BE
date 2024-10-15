@@ -36,3 +36,16 @@ aws:
   domain: 'jeets.s3.amazonaws.com'
 
 authAdmin: ""
+
+network_supported: [solana]
+
+blockchain:
+  solana:
+    operator: ''
+    provider:
+    contract:
+      pool:
+        address: ""
+        tx_creator: ""
+
+list_rpcs: []

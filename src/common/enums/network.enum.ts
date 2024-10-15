@@ -1,3 +1,3 @@
 export enum Network {
-  scroll = "scroll",
+  solana = "solana",
 }

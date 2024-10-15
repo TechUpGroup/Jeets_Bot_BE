@@ -1,4 +1,4 @@
 export enum ContractName {
-    MOONAD = "moonad",
+    POOL = "pool",
   }
   
