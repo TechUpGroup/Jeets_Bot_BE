@@ -3,13 +3,11 @@ import { PaginateModel } from "mongoose";
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
-import {
-  HISTORIES_MODEL,
-  Histories,
-  HistoriesDocument,
-} from "./schemas/histories.schema";
+import { HISTORIES_MODEL, Histories, HistoriesDocument } from "./schemas/histories.schema";
 import { SolanasService } from "modules/_shared/services/solana.service";
 import { Network } from "common/enums/network.enum";
+import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
+import { EVENT } from "common/constants/event";
 
 @Injectable()
 export class HistoriesService {
@@ -37,11 +35,36 @@ export class HistoriesService {
 
   async remainAmount() {
     const res = await this.historiesModel.find().sort({ timestamp: -1 }).limit(1);
-    let amount =  res.length ? res[0].remain.toString() : 0;
+    let amount = res.length ? res[0].remain.toString() : 0;
     if (!res.length) {
       amount = await this.solanasService.getTokenAccountBalance(Network.solana);
     }
     return amount;
   }
 
+  histories(query: PaginationDtoAndSortDto) {
+    const { limit, page, sortBy = "timestamp", sortType = -1 } = query;
+    const aggregate = this.historiesModel.aggregate([
+      {
+        $match: {
+          event: EVENT.OPERATOR_TRANSFER,
+        },
+      },
+      {
+        $sort: {
+          [sortBy]: sortType,
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          transaction_hash: 1,
+          timestamp: 1,
+          remain: { $toString: "$remain" },
+          transfer_amount: { $toString: "$transfer_amount" },
+        },
+      },
+    ]);
+    return this.historiesModel.aggregatePaginate(aggregate, { limit, page });
+  }
 }

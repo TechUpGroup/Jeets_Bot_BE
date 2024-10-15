@@ -27,18 +27,9 @@ export class MissionsService {
     }
 
     if (!userMiss) {
-      let check = true;
-      if (mission.type === SOCAIL_TYPE.X) {
-        check = user.address ? true : false;
-      }
-      if (mission.type === SOCAIL_TYPE.TELEGRAM) {
-        check = user.address ? true : false;
-      }
-      const [userUpdated] = await Promise.all([
-        check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined,
-      ]);
-      return userUpdated;
+      return this.userMissionsModel.create({ user: user._id, mission: mission._id });
     }
+    return;
   }
 
   async getUserMissions(user: UsersDocument) {

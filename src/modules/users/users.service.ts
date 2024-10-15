@@ -6,15 +6,16 @@ import { InjectModel } from "@nestjs/mongoose";
 import { USERS_MODEL, UsersDocument } from "./schemas/users.schema";
 import { ErrorMessages } from "./users.constant";
 import { Network } from "common/enums/network.enum";
-import { UpdateUserDto } from "./dto/user.dto";
-import { S3Service } from "modules/_shared/services/s3.service";
+import { base64Encode, telegramCheckAuth } from "common/utils";
+import { ConnectTwitterDto } from "./dto/twitter.dto";
+import axios from "axios";
+import config from "common/config";
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(USERS_MODEL)
     private readonly usersModel: PaginateModel<UsersDocument>,
-    private readonly s3Service: S3Service,
   ) {}
 
   async queryUsers(filter: any, options: any) {
@@ -149,7 +150,79 @@ export class UsersService {
     return this.usersModel.bulkWrite(bulkUpdate);
   }
 
-  async updateUser(user: UsersDocument, body: UpdateUserDto) {
-    return this.usersModel.updateOne({ _id: user._id }, { ...body });
+  async connectTelegram(user: UsersDocument, userInfo: any) {
+    if (user.telegram_uid) {
+      throw new BadRequestException(
+        "User with this wallet address already connected telegram with telegram_uid " + user.telegram_uid,
+      );
+    }
+    // validate hash
+    if (!telegramCheckAuth(userInfo)) {
+      throw new BadRequestException("Hash not matched or expired");
+    }
+
+    try {
+      await this.usersModel.findByIdAndUpdate(user._id, {
+        $set: {
+          telegram_uid: userInfo.id,
+          telegram_username: userInfo.username,
+        },
+      });
+
+      return userInfo;
+    } catch (error) {
+      console.error("Error:", error.message);
+      throw new BadRequestException("Internal Server Error");
+    }
+  }
+
+  async getAccessToken(code: string) {
+    const data = new URLSearchParams({
+      code,
+      grant_type: "authorization_code",
+      client_id: config.twitter.clientId,
+      redirect_uri: config.twitter.callbackURL,
+      code_verifier: "challenge",
+    }).toString();
+    const result = await axios
+      .post("https://api.twitter.com/2/oauth2/token", data, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${base64Encode(`${config.twitter.clientId}:${config.twitter.clientSecret}`)}`,
+        },
+      })
+      .catch((error) => {
+        console.error(data, error?.response?.data || error);
+      });
+
+    //
+    if (!result) {
+      throw new BadRequestException("Cannot get access_token");
+    }
+    return result.data.access_token;
+  }
+
+  async twitterConnect(user: UsersDocument, { code }: ConnectTwitterDto) {
+    const [userInfo, access_token] = await Promise.all([this.getUser(user._id), this.getAccessToken(code)]);
+    const uinfo = await axios
+      .get("https://api.twitter.com/2/users/me", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access_token}`,
+        },
+      })
+      .catch((error) => {
+        console.error({ access_token }, error?.response?.data || error);
+      });
+
+    if (!uinfo) {
+      throw new BadRequestException("Cannot get user_info");
+    }
+
+    // save
+    const { data: tinfo } = uinfo.data;
+    userInfo.twitter_uid = tinfo.id;
+    userInfo.twitter_username = tinfo.username;
+    return userInfo.save();
   }
 }
