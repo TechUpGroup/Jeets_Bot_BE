@@ -46,6 +46,10 @@ interface TransferResponse {
   signatureLatest?: string;
 }
 
+const addPriorityFee = web3.ComputeBudgetProgram.setComputeUnitPrice({
+  microLamports: 600_000,
+});
+
 @Injectable()
 export class SolanasService {
   private rpcChoosen = 0;
@@ -118,6 +122,7 @@ export class SolanasService {
           receiver: operator.publicKey,
         })
         .signers([operator])
+        .preInstructions([addPriorityFee])
         .rpc();
     } catch(e) {
       this.logsService.createLog("syncTransferToken", e)
