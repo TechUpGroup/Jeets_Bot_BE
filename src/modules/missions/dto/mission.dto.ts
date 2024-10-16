@@ -27,7 +27,7 @@ export class CreateDto {
   @ApiProperty({
     default: 1000
   })
-  reward: number;
+  ratio: number;
 
   @ApiPropertyOptional({
     default: ""
@@ -57,7 +57,6 @@ export class UpdateDto {
   @IsString()
   name: string;
 
-
   @ApiPropertyOptional({
     default: ""
   })
@@ -69,7 +68,7 @@ export class UpdateDto {
     default: 1000
   })
   @IsOptional()
-  reward: number;
+  ratio: number;
 
   @ApiPropertyOptional({
     default: ""

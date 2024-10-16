@@ -104,10 +104,10 @@ export class SolanasService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  // @Cron(CronExpression.EVERY_10_MINUTES)
   async syncTransferToken() {
     try {
-      const mint = new web3.PublicKey("DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o");
+      const mint = new web3.PublicKey("FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump");
       const operator = this.getSigner(Network.solana, SignerType.operator);
       const program = new anchor.Program(idl as ScJeetsSol, this.getProvider(Network.solana) as anchor.AnchorProvider);
   
@@ -132,7 +132,7 @@ export class SolanasService {
   }
 
   async getTokenAccountBalance(network: Network): Promise<string> {
-    const associateUser = new web3.PublicKey("E5po1oc2r2XHRaK4VCgVAkc6fEdFBL6rJwquHZVEigFW");
+    const associateUser = new web3.PublicKey("6vJqmEH6eNfHzEPu7parjtwqBpKwiWPB9RruURsHxWCH");
     const amount = await this.getConnectionConfirmed(network).getTokenAccountBalance(associateUser);
     return amount.value.amount;
   }

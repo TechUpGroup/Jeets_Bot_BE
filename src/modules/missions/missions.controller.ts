@@ -25,4 +25,15 @@ export class MissionsController {
   getUserMissions(@User() user: UsersDocument) {
     return this.missionsService.getUserMissions(user);
   }
+
+  @UseInterceptors(FileInterceptor("file"))
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    description: "File upload",
+    type: CreateDto,
+  })
+  @Post("create-mission")
+  create(@Headers('auth') auth: string, @Body() body: CreateDto, @UploadedFile() file?: Express.Multer.File) {
+    return this.missionsService.createMission(auth, body, file);
+  }
 }

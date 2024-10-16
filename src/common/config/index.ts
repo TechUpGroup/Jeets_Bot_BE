@@ -117,19 +117,15 @@ class Config {
 
   get telegram() {
     return {
-      api_key: "7041793497:AAEs9D0ovO7r2eEJSBdmB6-SznExdkXF-QY",
-      // api_key: this.getString("telegram.api_key"),
+      api_key: this.getString("telegram.api_key"),
     };
   }
 
   get twitter() {
     return {
-      clientId: "d1dHaUpPSGtKS1pvY3NxZTVRNVo6MTpjaQ",
-      clientSecret: "jxOVmIOivJt3qgRCkr8r17gYqra7aVZsoYE5rB-R_Ck6OjG55R",
-      callbackURL: "https://www.soljeets.com/",
-      // clientId: this.getString("twitter.clientId"),
-      // clientSecret: this.getString("twitter.clientSecret"),
-      // callbackURL: this.getString("twitter.callbackURL"),
+      clientId: this.getString("twitter.clientId"),
+      clientSecret: this.getString("twitter.clientSecret"),
+      callbackURL: this.getString("twitter.callbackURL"),
     };
   }
 
@@ -169,7 +165,7 @@ class Config {
     const address = this.getBlockChainInfo(network, `contract.${key}.address`);
     const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
     return {
-      address: "GkNvgEDZy5635yRTx9C2TJ46gW63C95qwmHQKveoTWpz",
+      address,
       tx_creator: tx_creator || "",
     };
   }
