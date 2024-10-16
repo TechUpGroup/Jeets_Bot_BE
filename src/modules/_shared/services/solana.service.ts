@@ -104,7 +104,7 @@ export class SolanasService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async syncTransferToken() {
     try {
       const mint = new web3.PublicKey("DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o");
