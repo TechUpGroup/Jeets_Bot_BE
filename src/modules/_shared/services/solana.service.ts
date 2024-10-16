@@ -4,7 +4,7 @@ import { Network } from "common/enums/network.enum";
 import { SignerType } from "common/enums/signer.enum";
 
 import { Injectable } from "@nestjs/common";
-import { AnchorProvider, EventParser, Wallet, web3 } from "@project-serum/anchor";
+import { AnchorProvider, BN, EventParser, Wallet, web3 } from "@project-serum/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
 import { EVENT } from "common/constants/event";
@@ -12,6 +12,7 @@ import idl from "common/idl/pool.json";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ScJeetsSol } from "common/idl/jeets";
 import { LogsService } from "modules/logs/logs.service";
+import { TOTAL_AMOUNT } from "common/constants/asset";
 
 interface SolanaProvider {
   connection: web3.Connection;
@@ -103,15 +104,15 @@ export class SolanasService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_MINUTE)
   async syncTransferToken() {
     try {
-      const mint = new web3.PublicKey("FiHGhC3YXNGSUUbVE6M6FtjLS4jdBi9n9wQzhXxwDgXf");
+      const mint = new web3.PublicKey("DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o");
       const operator = this.getSigner(Network.solana, SignerType.operator);
       const program = new anchor.Program(idl as ScJeetsSol, this.getProvider(Network.solana) as anchor.AnchorProvider);
   
       await program.methods
-        .operatorTransfer()
+        .operatorTransfer(new BN(TOTAL_AMOUNT))
         .accounts({
           mint: mint,
           receiver: operator.publicKey,
@@ -131,7 +132,7 @@ export class SolanasService {
   }
 
   async getTokenAccountBalance(network: Network): Promise<string> {
-    const associateUser = new web3.PublicKey("CxyKMYiDGdGfCLhm3yY7JTB9xWZf1EhW5hMjtTFGFVHw");
+    const associateUser = new web3.PublicKey("E5po1oc2r2XHRaK4VCgVAkc6fEdFBL6rJwquHZVEigFW");
     const amount = await this.getConnectionConfirmed(network).getTokenAccountBalance(associateUser);
     return amount.value.amount;
   }

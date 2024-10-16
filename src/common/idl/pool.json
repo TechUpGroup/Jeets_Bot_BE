@@ -1,5 +1,5 @@
 {
-  "address": "943BTkiEkCvj93HvjQ5kz2X3NKYyWqswUV4BemyCVBZg",
+  "address": "GkNvgEDZy5635yRTx9C2TJ46gW63C95qwmHQKveoTWpz",
   "metadata": {
     "name": "sc_jeets_sol",
     "version": "0.1.0",
@@ -433,7 +433,12 @@
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "amount_token",
+          "type": "u64"
+        }
+      ]
     },
     {
       "name": "update_operator",

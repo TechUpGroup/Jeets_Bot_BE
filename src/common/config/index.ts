@@ -169,7 +169,7 @@ class Config {
     const address = this.getBlockChainInfo(network, `contract.${key}.address`);
     const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
     return {
-      address,
+      address: "GkNvgEDZy5635yRTx9C2TJ46gW63C95qwmHQKveoTWpz",
       tx_creator: tx_creator || "",
     };
   }

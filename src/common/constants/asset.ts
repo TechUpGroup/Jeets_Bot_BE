@@ -7,7 +7,8 @@ export const ETH_DECIMAL_SYMBOL = 18
 export const TOKEN_DECIMAL_SYMBOL = 18
 
 export const ETH_DECIMAL = 1e18;
-export const TOKEN_DECIMAL = 1e18;
+export const TOKEN_DECIMAL = 1e6;
 export const INIT_PRICE = 0.00000000025;
 export const THRESHOLD_MARKET_CAP = 690;
 export const TOTAL_SUPPLY = "1000000000000000000000000000";
+export const TOTAL_AMOUNT = 100 * TOKEN_DECIMAL;
