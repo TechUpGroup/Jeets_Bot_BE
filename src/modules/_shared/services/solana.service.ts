@@ -116,7 +116,7 @@ export class SolanasService {
     }
   }
 
-  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async syncTransferToken() {
     const network = Network.solana;
     for (const address of config.getContract(network, ContractName.POOL).pools) {
