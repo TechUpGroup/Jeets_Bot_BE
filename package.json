@@ -66,6 +66,7 @@
     "rxjs": "^7.2.0",
     "short-unique-id": "^4.4.4",
     "telegraf": "^4.16.3",
+    "tweetnacl": "^1.0.3",
     "typechain": "^8.1.1",
     "ua-parser-js": "^1.0.32",
     "uuid": "^9.0.0"

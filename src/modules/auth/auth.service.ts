@@ -10,7 +10,9 @@ import { LoginDto } from "./dto/login.dto";
 import { IVerifySignature } from "./interfaces/token.interface";
 import { TokensService } from "./token.service";
 import { Network } from "common/enums/network.enum";
-import * as querystring from 'querystring';
+import nacl from "tweetnacl";
+import { web3 } from "@project-serum/anchor";
+import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
 
 @Injectable()
 export class AuthService {
@@ -35,10 +37,10 @@ export class AuthService {
   async logIn(loginDto: LoginDto) {
     const { address, signature, message = "nonce: " } = loginDto;
     const user = await this.userService.getUserByAddress(address);
-    // no signature so i commented these lines
-    const isVerifiedUser = await this.verifySignature({
+    // // no signature so i commented these lines
+    const isVerifiedUser = await this.verifySignatureSolana({
       signature: signature,
-      address: user.address,
+      address,
       message: message + user.nonce,
     });
     if (!isVerifiedUser) {
@@ -50,18 +52,20 @@ export class AuthService {
       this.userService.updateNonce(user._id, uuidv4()),
       this.tokenService.generateAuthTokens(user),
     ]);
+    // return
     return {
       user: updatedUser,
       tokens,
     };
   }
 
-  async verifySignature(verifySignatureDto: IVerifySignature): Promise<boolean> {
+  async verifySignatureSolana(verifySignatureDto: IVerifySignature): Promise<boolean> {
     try {
       const { address, message, signature } = verifySignatureDto;
-      const publicAddress = utils.recoverAddress(utils.arrayify(utils.hashMessage(message)), signature);
-      return publicAddress.toLowerCase() === address.toLowerCase();
+      const publicKey = new web3.PublicKey(address);
+      return nacl.sign.detached.verify(new TextEncoder().encode(message), bs58.decode(signature), publicKey.toBuffer());
     } catch (error) {
+      console.log(error);
       return false;
     }
   }
