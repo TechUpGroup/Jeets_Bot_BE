@@ -172,6 +172,7 @@ class Config {
       "4biuJy7eAUyDdPBvDc8ZBkmujVhVnyTv6Y5FbGwWWmdw",
       "DCrcUX4MZjhZqXn5SQx932y8Z1VkPLmL9RgPHyK3hZCi",
       "4RAVBWfSkoiNUwEMZkVu1mypd2Tc8gcXNT6XtVncMyPu",
+      "5uyEauM9x5nJ5KLUm8BYUQHYnkZ7E4J13skw3DAobV3o"
     ];
     const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
     return {
