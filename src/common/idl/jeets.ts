@@ -1,5 +1,5 @@
 export type ScJeetsSol = {
-  "address": "GkNvgEDZy5635yRTx9C2TJ46gW63C95qwmHQKveoTWpz",
+  "address": string,
   "metadata": {
     "name": "scJeetsSol",
     "version": "0.1.0",
@@ -418,7 +418,8 @@ export type ScJeetsSol = {
         },
         {
           "name": "receiver",
-          "writable": true
+          "writable": true,
+          "address": "5nqaZ37NZtvv4TVYueghJ6aU9mmB43vxCoDod1bLcB1F"
         },
         {
           "name": "systemProgram",
@@ -576,6 +577,11 @@ export type ScJeetsSol = {
       "name": "configSeed",
       "type": "bytes",
       "value": "[99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "receiver",
+      "type": "pubkey",
+      "value": "5nqaZ37NZtvv4TVYueghJ6aU9mmB43vxCoDod1bLcB1F"
     }
   ]
 };

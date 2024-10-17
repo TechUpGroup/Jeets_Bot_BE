@@ -3,7 +3,7 @@ import { SyncEventSolanaModule } from "./solana/sync-event.module";
 
 @Module({
   imports: [
-    // SyncEventSolanaModule
+    SyncEventSolanaModule
   ]
 })
 export class SyncEventModule {}

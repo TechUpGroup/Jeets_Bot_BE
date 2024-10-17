@@ -26,8 +26,8 @@ export class ContractsService {
     return await this.contractModel.updateOne({ _id }, { tx_synced });
   }
 
-  async checkContractExist(name: ContractName, network: Network) {
-    return !!(await this.contractModel.findOne({ name, network }));
+  async checkContractExist(contract_address: string, network: Network) {
+    return !!(await this.contractModel.findOne({ contract_address, network }));
   }
 
   async getContractByName(name: ContractName, network?: Network) {
@@ -36,6 +36,14 @@ export class ContractsService {
       query.network = network;
     }
     return await this.contractModel.findOne(query);
+  }
+
+  async getAllContractsByName(name: ContractName, network?: Network) {
+    const query: any = { name };
+    if (network) {
+      query.network = network;
+    }
+    return await this.contractModel.find(query);
   }
 
   async getContractByNames(names: ContractName[], network?: Network) {
@@ -69,12 +77,11 @@ export class ContractsService {
       }[] = [];
 
       for (const network of allNetworks) {
-        for (const name of Object.values(ContractName)) {
-          const { address, tx_creator } = config.getContract(network, name);
+        for (const address of config.getContract(network, ContractName.POOL).pools) {
           contractCreate.push({
             contract_address: address,
-            tx_synced: tx_creator !== "" ? tx_creator : undefined,
-            name,
+            tx_synced: undefined,
+            name: ContractName.POOL,
             network,
           });
         }
@@ -83,7 +90,7 @@ export class ContractsService {
       for (const contract of contractCreate) {
         const { contract_address, name, network } = contract;
         if (!contract_address) continue;
-        if (!(await this.checkContractExist(name, network))) {
+        if (!(await this.checkContractExist(contract_address, network))) {
           await this.createContract(contract);
         }
       }

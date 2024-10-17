@@ -4,17 +4,16 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
 import { HISTORIES_MODEL, Histories, HistoriesDocument } from "./schemas/histories.schema";
-import { SolanasService } from "modules/_shared/services/solana.service";
-import { Network } from "common/enums/network.enum";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 import { EVENT } from "common/constants/event";
+import { INIT_LOCKED } from "common/constants/asset";
+import BigNumber from "bignumber.js";
 
 @Injectable()
 export class HistoriesService {
   constructor(
     @InjectModel(HISTORIES_MODEL)
     private readonly historiesModel: PaginateModel<HistoriesDocument>,
-    private readonly solanasService: SolanasService,
   ) {}
 
   async findTransactionHashExists(hashes: string[]) {
@@ -34,12 +33,15 @@ export class HistoriesService {
   }
 
   async remainAmount() {
-    const res = await this.historiesModel.find().sort({ timestamp: -1 }).limit(1);
-    let amount = res.length ? res[0].remain.toString() : 0;
-    if (!res.length) {
-      amount = await this.solanasService.getTokenAccountBalance(Network.solana);
-    }
-    return amount;
+    const res = await this.historiesModel.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalTransfer: { $sum: "$transfer_amount" }
+        }
+      }
+    ]);
+    return res.length ? BigNumber(INIT_LOCKED).minus(res[0].totalTransfer.toString()).toFixed() : INIT_LOCKED.toFixed();
   }
 
   histories(query: PaginationDtoAndSortDto) {

@@ -1,5 +1,5 @@
-{
-  "address": "GkNvgEDZy5635yRTx9C2TJ46gW63C95qwmHQKveoTWpz",
+export const common = {
+  "address": "4biuJy7eAUyDdPBvDc8ZBkmujVhVnyTv6Y5FbGwWWmdw",
   "metadata": {
     "name": "sc_jeets_sol",
     "version": "0.1.0",
@@ -418,7 +418,8 @@
         },
         {
           "name": "receiver",
-          "writable": true
+          "writable": true,
+          "address": "5nqaZ37NZtvv4TVYueghJ6aU9mmB43vxCoDod1bLcB1F"
         },
         {
           "name": "system_program",
@@ -576,6 +577,11 @@
       "name": "CONFIG_SEED",
       "type": "bytes",
       "value": "[99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "RECEIVER",
+      "type": "pubkey",
+      "value": "5nqaZ37NZtvv4TVYueghJ6aU9mmB43vxCoDod1bLcB1F"
     }
   ]
 }

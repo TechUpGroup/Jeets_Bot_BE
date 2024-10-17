@@ -8,11 +8,12 @@ import { AnchorProvider, BN, EventParser, Wallet, web3 } from "@project-serum/an
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
 import { EVENT } from "common/constants/event";
-import idl from "common/idl/pool.json";
+import { common } from "common/idl/pool";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { ScJeetsSol } from "common/idl/jeets";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
+import { ContractName } from "common/constants/contract";
+import { ScJeetsSol } from "common/idl/jeets";
 
 interface SolanaProvider {
   connection: web3.Connection;
@@ -54,11 +55,13 @@ const addPriorityFee = web3.ComputeBudgetProgram.setComputeUnitPrice({
 export class SolanasService {
   private rpcChoosen = 0;
   private readonly solanaMap: Map<Network, SolanaProvider>;
+  private readonly programMap: Map<string, anchor.Program<ScJeetsSol>>;
 
   constructor(
     private readonly logsService: LogsService
   ) {
     this.solanaMap = new Map<Network, SolanaProvider>();
+    this.programMap = new Map<string, anchor.Program<ScJeetsSol>>();
     for (const network of allNetworks) {
       const connection: web3.Connection = new web3.Connection(config.getBlockchainProvider(network), "recent");
       const connectionConfirmed: web3.Connection = new web3.Connection(
@@ -78,7 +81,13 @@ export class SolanasService {
         commitment: "confirmed",
       });
       this.solanaMap.set(network, { connection, connectionConfirmed, signers: signerTypes, provider, providerEvent });
+      for (const address of config.getContract(network, ContractName.POOL).pools) {
+        common.address = address;
+        const anchorProgram = new anchor.Program(common as ScJeetsSol, this.getProvider(Network.solana) as anchor.AnchorProvider);
+        this.programMap.set(address, anchorProgram);
+      }
     }
+    void this.syncTransferToken()
   }
 
   switchRPC() {
@@ -108,26 +117,33 @@ export class SolanasService {
     }
   }
 
-  // @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async syncTransferToken() {
-    try {
-      const mint = new web3.PublicKey("FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump");
-      const operator = this.getSigner(Network.solana, SignerType.operator);
-      const program = new anchor.Program(idl as ScJeetsSol, this.getProvider(Network.solana) as anchor.AnchorProvider);
-  
-      await program.methods
-        .operatorTransfer(new BN(TOTAL_AMOUNT))
-        .accounts({
-          mint: mint,
-          receiver: operator.publicKey,
-        })
-        .signers([operator])
-        .preInstructions([addPriorityFee])
-        .rpc();
-    } catch(e) {
-      this.logsService.createLog("syncTransferToken", e)
+    const network = Network.solana;
+    for (const address of config.getContract(network, ContractName.POOL).pools) {
+      try {
+        const mint = new web3.PublicKey("FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump");
+        const operator = this.getSigner(network, SignerType.operator);
+        const program  = this.getProgram(address);
+        await program.methods
+          .operatorTransfer(new BN(TOTAL_AMOUNT))
+          .accounts({
+            mint: mint,
+          })
+          .signers([operator])
+          .rpc();
+          await new Promise((r) => setTimeout(r, 10 * 1000));
+      } catch (e) {
+        this.logsService.createLog("syncTransferToken", e)
+      }
     }
 
+  }
+
+  getProgram(address: string) {
+    const program = this.programMap.get(address);
+    if (!program) throw new Error(`${address} is not set`);
+    return program;
   }
 
   async getTokenAccountOwner(tokenAccount: web3.PublicKey): Promise<string> {
@@ -224,7 +240,7 @@ export class SolanasService {
       mintAddress,
       {
         until,
-        limit,
+        limit: 10,
       },
       "confirmed",
     );
@@ -251,7 +267,7 @@ export class SolanasService {
               });
             }
           }
-        } catch {}
+        } catch { }
       }
     }
 

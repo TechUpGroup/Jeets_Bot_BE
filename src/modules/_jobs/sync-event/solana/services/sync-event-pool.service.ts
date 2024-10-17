@@ -9,9 +9,9 @@ import { EVENT } from "common/constants/event";
 import { HistoriesService } from "modules/histories/histories.service";
 import { HelperSolanaService } from "./_helper-solana.service";
 import { SolanasService } from "modules/_shared/services/solana.service";
-import idl from "common/idl/pool.json";
 import { IEventParams } from "../interfaces/helper-solana.interface";
 import { Network } from "common/enums/network.enum";
+import { common } from "common/idl/pool";
 const acceptEvents = [EVENT.OPERATOR_TRANSFER];
 
 @Injectable()
@@ -27,30 +27,35 @@ export class JobSyncEventService {
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   private async start() {
-    const contract = await this.contractService.getContractByName(ContractName.POOL, Network.solana);
-    if (!contract) return;
-    if (this.isRunning[contract.name]) return;
-    this.isRunning[contract.name] = true;
-    try {
-      const eventParser = this.solanasService.eventParser(contract.network, idl);
-      await this.helperService.excuteSync({
-        contract,
-        acceptEvents,
-        eventParser,
-        callback: this.handleEvents,
-      });
-    } catch (err) {
-      this.solanasService.switchRPC();
-      this.logsService.createLog("JobSyncEventService -> start: ", err);
-    } finally {
-      delete this.isRunning[contract.name];
-    }
+    const contracts = await this.contractService.getAllContractsByName(ContractName.POOL, Network.solana);
+    if (!contracts.length) return;
+    const eventParser = this.solanasService.eventParser(Network.solana, common);
+    await Promise.allSettled(
+      contracts.map(async (contract) => {
+        if (this.isRunning[contract.name]) return;
+        this.isRunning[contract.name] = true;
+        try {
+          await this.helperService.excuteSync({
+            contract,
+            acceptEvents,
+            eventParser,
+            callback: this.handleEvents,
+          });
+        } catch (err) {
+          console.log(err);
+          this.solanasService.switchRPC();
+          this.logsService.createLog("JobSyncEventService -> start: ", err);
+        } finally {
+          delete this.isRunning[contract.name];
+        }
+      }),
+    );
   }
 
   private handleEvents = async ({ events: listEvents, contract, eventHashes }: IEventParams) => {
     try {
       if (!listEvents.length) return;
-      const { network } = contract;
+      const { network, contract_address } = contract;
       const txsHashExists = await this.historiesService.findTransactionHashExists(eventHashes);
       const events = this.helperService.filterEvents(listEvents, txsHashExists, network);
 
@@ -67,17 +72,16 @@ export class JobSyncEventService {
         if (event.event === EVENT.OPERATOR_TRANSFER) {
           histories.push({
             ...history,
+            contract_address,
             event: EVENT.OPERATOR_TRANSFER,
             timestamp: blockTime,
             remain,
-            transfer_amount
+            transfer_amount,
           });
         }
       }
 
-      await Promise.all([
-        histories.length ? this.historiesService.saveHistories(histories) : undefined,
-      ]);
+      await Promise.all([histories.length ? this.historiesService.saveHistories(histories) : undefined]);
     } catch (err) {
       this.logsService.createLog("JobSyncEventService -> handleEvents: ", err);
     }

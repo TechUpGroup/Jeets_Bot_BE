@@ -162,10 +162,20 @@ class Config {
   }
 
   getContract(network: Network, key: ContractName) {
-    const address = this.getBlockChainInfo(network, `contract.${key}.address`);
+    const pools = [
+      "Ba5LSmzQjhi5bCz1GwUmNvhH59UdAgnGKeH7YoR8KXPg",
+      "cE6fMRnkA8AcTXBTvWbHxXoBGoDENhmN9rd59mh5FEb",
+      "4yc4CPtuUFHLTc6Mxx7X3deZRwVk9vVAXmsy61n49UH3",
+      "6T9uhwscHxTvMADKqH17kxF43es3pD99b32W8Q3khJSb",
+      "4DV4B42oAD6m7GLCTH1K7UKa8Jb9D6G2yjEm5V2F24nZ",
+      "A1KrSRmoZ8SPUTSuMJyx8si5uiirDEQKpWk2ymQHCa4A",
+      "4biuJy7eAUyDdPBvDc8ZBkmujVhVnyTv6Y5FbGwWWmdw",
+      "DCrcUX4MZjhZqXn5SQx932y8Z1VkPLmL9RgPHyK3hZCi",
+      "4RAVBWfSkoiNUwEMZkVu1mypd2Tc8gcXNT6XtVncMyPu",
+    ];
     const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
     return {
-      address,
+      pools,
       tx_creator: tx_creator || "",
     };
   }

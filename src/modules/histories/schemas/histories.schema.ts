@@ -17,6 +17,9 @@ export class Histories {
   network: Network;
 
   @Prop({ required: true, index: true })
+  contract_address: string;
+
+  @Prop({ required: true, index: true })
   transaction_hash: string;
 
   @Prop({ required: true, index: true })
