@@ -87,7 +87,6 @@ export class SolanasService {
         this.programMap.set(address, anchorProgram);
       }
     }
-    void this.syncTransferToken()
   }
 
   switchRPC() {
@@ -132,7 +131,7 @@ export class SolanasService {
           })
           .signers([operator])
           .rpc();
-          await new Promise((r) => setTimeout(r, 10 * 1000));
+        await new Promise((r) => setTimeout(r, 10 * 1000));
       } catch (e) {
         this.logsService.createLog("syncTransferToken", e)
       }
