@@ -7,6 +7,7 @@ import { VotingsController } from "./votings.controller";
 import { USER_VOTINGS_MODEL, UserVotingsSchema, VOTING_DASHBOARDS_MODEL, VotingDashboardsSchema } from "./schemas/user-votings.schema";
 import { UsersModule } from "modules/users/users.module";
 import { WHITELIST_MODEL, WhitelistsSchema } from "./schemas/whitelist.schema";
+import { MissionsModule } from "modules/missions/missions.module";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { WHITELIST_MODEL, WhitelistsSchema } from "./schemas/whitelist.schema";
     MongooseModule.forFeature([{ name: WHITELIST_MODEL, schema: WhitelistsSchema }]),
     MongooseModule.forFeature([{ name: VOTING_DASHBOARDS_MODEL, schema: VotingDashboardsSchema }]),
     forwardRef(() => UsersModule),
+    forwardRef(() => MissionsModule),
   ],
   providers: [VotingsService],
   controllers: [VotingsController],
