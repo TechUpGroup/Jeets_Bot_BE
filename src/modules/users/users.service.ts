@@ -203,6 +203,11 @@ export class UsersService {
   }
 
   async twitterConnect(user: UsersDocument, { code }: ConnectTwitterDto) {
+    if (user.twitter_uid) {
+      throw new BadRequestException(
+        "User with this wallet address already connected twitter with twitter_uid " + user.twitter_uid,
+      );
+    }
     const [userInfo, access_token] = await Promise.all([this.getUser(user._id), this.getAccessToken(code)]);
     const uinfo = await axios
       .get("https://api.twitter.com/2/users/me", {

@@ -20,6 +20,9 @@ export class Missions {
   name: string;
 
   @Prop({ required: true })
+  name_chat: string;
+
+  @Prop({ required: true })
   link: string;
 
   @Prop({ required: true })

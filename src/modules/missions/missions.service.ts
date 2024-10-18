@@ -9,6 +9,8 @@ import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
 import { CreateMissionDto, UpdateMissionDto } from "./dto/mission.dto";
 import { S3Service } from "modules/_shared/services/s3.service";
+import { SOCAIL_TYPE } from "common/enums/common";
+import { TelegramService } from "modules/_shared/services/telegram.service";
 
 @Injectable()
 export class MissionsService {
@@ -17,10 +19,17 @@ export class MissionsService {
     private readonly missionsModel: PaginateModel<MissionsDocument>,
     @InjectModel(USER_MISSIONS_MODEL)
     private readonly userMissionsModel: PaginateModel<UserMissionsDocument>,
-    private readonly s3Service: S3Service
+    private readonly s3Service: S3Service,
+    private readonly telegramService: TelegramService,
   ) {}
 
   async action(user: UsersDocument, id: string) {
+    if (!user.twitter_uid) {
+      throw new BadRequestException("User not connected twitter");
+    }
+    if (!user.telegram_uid) {
+      throw new BadRequestException("User not connected telegram");
+    }
     const [mission, userMiss] = await Promise.all([
       this.missionsModel.findOne({ _id: id, status: true }),
       this.userMissionsModel.findOne({ mission: id, user: user._id }),
@@ -30,7 +39,17 @@ export class MissionsService {
     }
 
     if (!userMiss) {
-      return this.userMissionsModel.create({ user: user._id, mission: mission._id });
+      //verify
+      let check = false;
+      if (mission.type === SOCAIL_TYPE.TELEGRAM) {
+       check = await this.telegramService.checkSubscribeTelegram(user, mission.name_chat);
+      }
+
+      if (mission.type === SOCAIL_TYPE.X) {
+       check = false;
+      }
+
+      return check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined;
     }
     return;
   }
@@ -40,23 +59,22 @@ export class MissionsService {
       this.missionsModel.find({ status: true }).sort({ mid: 1 }),
       this.userMissionsModel.find({ user: user._id }),
     ]);
-    const active: any[] = [];
-    const completed: any[] = [];
+    const result: any[] = [];
     for (const mission of missions) {
       const found = userMiss.find((u) => u.mission.toString() === mission._id.toString());
       if (found) {
-          completed.push({
-            ...mission["_doc"],
-            status: true,
-          });
+        result.push({
+          ...mission["_doc"],
+          status: true,
+        });
       } else {
-        active.push({
+        result.push({
           ...mission["_doc"],
           status: false,
         });
       }
     }
-    return { active, completed };
+    return result;
   }
 
   async createMission(auth: string, body: CreateMissionDto, file?: Express.Multer.File) {

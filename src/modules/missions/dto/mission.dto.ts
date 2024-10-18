@@ -19,6 +19,12 @@ export class CreateMissionDto {
   name: string;
 
   @ApiProperty({
+    default: "@jeetsol123"
+  })
+  @IsString()
+  name_chat: string;
+
+  @ApiProperty({
     default: ""
   })
   @IsString()
@@ -56,6 +62,13 @@ export class UpdateMissionDto {
   @IsOptional()
   @IsString()
   name: string;
+
+  @ApiPropertyOptional({
+    default: "@jeetsol123"
+  })
+  @IsOptional()
+  @IsString()
+  name_chat: string;
 
   @ApiPropertyOptional({
     default: ""
