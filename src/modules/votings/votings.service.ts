@@ -124,13 +124,14 @@ export class VotingsService {
       this.userVotingsModel.find({ user: user._id, voting: current._id }),
     ]);
     const result: any[] = [];
-    for (const whitelist of whitelists) {
-      const found = userVotes.find((a) => a.user_voted.toString() === whitelist._id.toString());
+    for (let i = 0; i < whitelists.length; i++) {
+      const found = userVotes.find((a) => a.user_voted.toString() === whitelists[i]._id.toString());
       result.push({
-        _id: whitelist._id,
-        name: whitelist.name,
-        avatar: whitelist.avatar,
-        countVote: whitelist.countVote,
+        _id: whitelists[i]._id,
+        rank: i + 1,
+        name: whitelists[i].name,
+        avatar: whitelists[i].avatar,
+        countVote: whitelists[i].countVote,
         status: found ? true : false,
       });
     }
