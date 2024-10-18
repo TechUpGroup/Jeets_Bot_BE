@@ -38,20 +38,20 @@ export class MissionsService {
       throw new BadRequestException("Mission not found");
     }
 
+    let check = false;
     if (!userMiss) {
       //verify
-      let check = false;
       if (mission.type === SOCAIL_TYPE.TELEGRAM) {
-       check = await this.telegramService.checkSubscribeTelegram(user, mission.name_chat);
+        check = await this.telegramService.checkSubscribeTelegram(user, mission.name_chat);
       }
 
       if (mission.type === SOCAIL_TYPE.X) {
-       check = false;
+        check = false;
       }
 
-      return check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined;
+      check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined;
     }
-    return;
+    return check;
   }
 
   async getUserMissions(user: UsersDocument) {
