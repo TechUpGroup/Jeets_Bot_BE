@@ -38,6 +38,9 @@ export class Users {
   @Prop({ required: false, sparse: true })
   twitter_username: string;
 
+  @Prop({ required: false, sparse: true })
+  twitter_avatar: string;
+
   @Prop({ required: true, default: false })
   banned: boolean;
 

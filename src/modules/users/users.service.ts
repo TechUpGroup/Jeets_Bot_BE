@@ -228,6 +228,7 @@ export class UsersService {
     const { data: tinfo } = uinfo.data;
     userInfo.twitter_uid = tinfo.id;
     userInfo.twitter_username = tinfo.username;
+    userInfo.twitter_avatar = tinfo?.profile_image_url;
     return userInfo.save();
   }
 }
