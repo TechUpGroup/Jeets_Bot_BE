@@ -4,7 +4,7 @@ import { MissionsService } from "./missions.service";
 import { Auth } from "common/decorators/http.decorators";
 import { User } from "common/decorators/user.decorator";
 import { UsersDocument } from "modules/users/schemas/users.schema";
-import { CreateDto, UpdateDto } from "./dto/mission.dto";
+import { CreateMissionDto, UpdateMissionDto } from "./dto/mission.dto";
 import { FileInterceptor } from "@nestjs/platform-express";
 
 @ApiTags("Missions")
@@ -30,10 +30,26 @@ export class MissionsController {
   @ApiConsumes("multipart/form-data")
   @ApiBody({
     description: "File upload",
-    type: CreateDto,
+    type: CreateMissionDto,
   })
   @Post("create-mission")
-  create(@Headers('auth') auth: string, @Body() body: CreateDto, @UploadedFile() file?: Express.Multer.File) {
+  create(@Headers('auth') auth: string, @Body() body: CreateMissionDto, @UploadedFile() file?: Express.Multer.File) {
     return this.missionsService.createMission(auth, body, file);
+  }
+
+  @UseInterceptors(FileInterceptor("file"))
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    description: "File upload",
+    type: UpdateMissionDto,
+  })
+  @Put("update-mission/:mid")
+  update(@Headers('auth') auth: string, @Param('mid') mid: number, @Body() body: UpdateMissionDto, @UploadedFile() file?: Express.Multer.File) {
+    return this.missionsService.updateMission(auth, mid, body, file);
+  }
+
+  @Get("")
+  getAll(@Headers('auth') auth: string) {
+    return this.missionsService.getAll(auth);
   }
 }

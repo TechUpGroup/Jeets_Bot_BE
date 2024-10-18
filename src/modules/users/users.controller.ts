@@ -22,6 +22,13 @@ export class UsersController {
     return user;
   }
 
+  @Get("telegrram/start")
+  @ApiOperation({ summary: "Redirect to telegram to auth (Open this in browser)" })
+  @Redirect(
+    `https://oauth.telegram.org/auth?bot_id=${config.telegram.bot_id}&origin=${config.telegram.callback_url}&request_access=write&return_to=${config.telegram.bot_id}`,
+  )
+  async telegramStart() {}
+
   @Auth()
   @Post("telegram/connect")
   connectTelegram(@User() user: UsersDocument, @Body() data: any) {

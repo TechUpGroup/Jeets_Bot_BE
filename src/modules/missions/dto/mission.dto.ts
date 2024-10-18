@@ -4,7 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { ToBoolean } from "common/decorators/transforms.decorator";
 import { SOCAIL_TYPE } from "common/enums/common";
 
-export class CreateDto {
+export class CreateMissionDto {
   @ApiProperty({
     enum: SOCAIL_TYPE,
     default: SOCAIL_TYPE.X
@@ -41,7 +41,7 @@ export class CreateDto {
   file?: Express.Multer.File;
 }
 
-export class UpdateDto {
+export class UpdateMissionDto {
   @ApiPropertyOptional({
     enum: SOCAIL_TYPE,
     default: SOCAIL_TYPE.X

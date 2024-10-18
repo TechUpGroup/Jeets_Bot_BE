@@ -25,31 +25,30 @@ export class JobSyncEventService {
   ) {}
   private isRunning = {};
 
-  @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   private async start() {
     const contracts = await this.contractService.getAllContractsByName(ContractName.POOL, Network.solana);
     if (!contracts.length) return;
-    const eventParser = this.solanasService.eventParser(Network.solana, common);
-    await Promise.allSettled(
-      contracts.map(async (contract) => {
-        if (this.isRunning[contract.name]) return;
-        this.isRunning[contract.name] = true;
-        try {
-          await this.helperService.excuteSync({
-            contract,
-            acceptEvents,
-            eventParser,
-            callback: this.handleEvents,
-          });
-        } catch (err) {
-          console.log(err);
-          this.solanasService.switchRPC();
-          this.logsService.createLog("JobSyncEventService -> start: ", err);
-        } finally {
-          delete this.isRunning[contract.name];
-        }
-      }),
-    );
+    for (const contract of contracts) {
+      if (this.isRunning[contract.contract_address]) continue;
+      this.isRunning[contract.contract_address] = true;
+      try {
+        common.address = contract.contract_address;
+        const eventParser = this.solanasService.eventParser(Network.solana, common);
+        await this.helperService.excuteSync({
+          contract,
+          acceptEvents,
+          eventParser,
+          callback: this.handleEvents,
+        });
+      } catch (err) {
+        console.log(err);
+        this.solanasService.switchRPC();
+        this.logsService.createLog("JobSyncEventService -> start: ", err);
+      } finally {
+        delete this.isRunning[contract.contract_address];
+      }
+    }
   }
 
   private handleEvents = async ({ events: listEvents, contract, eventHashes }: IEventParams) => {

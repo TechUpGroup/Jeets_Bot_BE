@@ -7,7 +7,7 @@ import { MISSIONS_MODEL, MissionsDocument } from "./schemas/missions.schema";
 import { USER_MISSIONS_MODEL, UserMissionsDocument } from "./schemas/user-missions.schema";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
-import { CreateDto } from "./dto/mission.dto";
+import { CreateMissionDto, UpdateMissionDto } from "./dto/mission.dto";
 import { S3Service } from "modules/_shared/services/s3.service";
 
 @Injectable()
@@ -59,7 +59,7 @@ export class MissionsService {
     return { active, completed };
   }
 
-  async createMission(auth: string, body: CreateDto, file?: Express.Multer.File) {
+  async createMission(auth: string, body: CreateMissionDto, file?: Express.Multer.File) {
     if (auth !== config.admin) {
       throw new UnauthorizedException("Not permission");
     }
@@ -94,5 +94,49 @@ export class MissionsService {
     } catch (e) {
       throw new BadRequestException(e);
     }
+  }
+
+  async updateMission(auth: string, mid: number, body: UpdateMissionDto, file?: Express.Multer.File) {
+    if (auth !== config.admin) {
+      throw new UnauthorizedException("Not permission");
+    }
+    try {
+      let data: any = {
+        ...body,
+      };
+      let mission_image;
+      if (file) {
+        mission_image = await this.s3Service.uploadImage(file.originalname, file);
+        data = {
+          ...data,
+          mission_image,
+        };
+      }
+      let missionActionLink;
+      if (body?.link || body?.content) {
+        missionActionLink = body.link;
+        if (body?.content) {
+          missionActionLink =
+            "https://x.com/intent/tweet?text=" +
+            body.content.replace(body.link, "").replace(/\n/g, "%0A").replace(/\r/g, "") +
+            "&url=" +
+            body.link;
+        }
+        data = {
+          ...data,
+          action_link: missionActionLink,
+        };
+      }
+      return this.missionsModel.findOneAndUpdate({ mid }, { ...data }, { new: true });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
+  }
+
+  async getAll(auth: string) {
+    if (auth !== config.admin) {
+      throw new UnauthorizedException("Not permission");
+    }
+    return this.missionsModel.find().sort({ mid: 1 });
   }
 }
