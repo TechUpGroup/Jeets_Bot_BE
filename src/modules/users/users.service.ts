@@ -7,7 +7,7 @@ import { USERS_MODEL, UsersDocument } from "./schemas/users.schema";
 import { ErrorMessages } from "./users.constant";
 import { Network } from "common/enums/network.enum";
 import { base64Encode, telegramCheckAuth } from "common/utils";
-import { ConnectTwitterDto } from "./dto/twitter.dto";
+import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
 import axios from "axios";
 import config from "common/config";
 
@@ -150,7 +150,18 @@ export class UsersService {
     return this.usersModel.bulkWrite(bulkUpdate);
   }
 
-  async connectTelegram(user: UsersDocument, userInfo: any) {
+  async connectTelegram(user: UsersDocument, data: ConnectTelegramDto) {
+    const base64 = data.code.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join(""),
+    );
+    const userInfo = JSON.parse(jsonPayload);
+
     if (user.telegram_uid) {
       throw new BadRequestException(
         "User with this wallet address already connected telegram with telegram_uid " + user.telegram_uid,

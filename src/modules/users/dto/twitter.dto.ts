@@ -9,3 +9,5 @@ export class ConnectDto {
   }
   
   export class ConnectTwitterDto extends ConnectDto {}
+
+  export class ConnectTelegramDto extends ConnectDto {}

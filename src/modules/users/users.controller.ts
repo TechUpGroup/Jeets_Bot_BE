@@ -7,7 +7,7 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { UsersDocument } from "./schemas/users.schema";
 import { UsersService } from "./users.service";
 import config from "common/config";
-import { ConnectTwitterDto } from "./dto/twitter.dto";
+import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
 
 @ApiTags("Users")
 @Controller("users")
@@ -31,7 +31,7 @@ export class UsersController {
 
   @Auth()
   @Post("telegram/connect")
-  connectTelegram(@User() user: UsersDocument, @Body() data: any) {
+  connectTelegram(@User() user: UsersDocument, @Body() data: ConnectTelegramDto) {
     return this.usersService.connectTelegram(user, data);
   }
 
