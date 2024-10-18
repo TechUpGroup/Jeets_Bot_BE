@@ -15,6 +15,7 @@ import { WHITELIST_MODEL, WhitelistsDocument } from "./schemas/whitelist.schema"
 import config from "common/config";
 import { CreateDto, CreateSessionVoteDto } from "./dto/votings.dto";
 import { S3Service } from "modules/_shared/services/s3.service";
+import { MissionsService } from "modules/missions/missions.service";
 
 @Injectable()
 export class VotingsService {
@@ -28,13 +29,20 @@ export class VotingsService {
     @InjectModel(VOTING_DASHBOARDS_MODEL)
     private readonly votingDashboardsModel: PaginateModel<VotingDashboardsDocument>,
     private readonly s3Service: S3Service,
+    private readonly missionsService: MissionsService,
   ) {}
 
   async action(user: UsersDocument, id: string) {
     const now = Date.now();
-    const current = await this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } });
+    const [current, { ratio }] = await Promise.all([
+      this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } }),
+      this.missionsService.getUserMissions(user),
+    ]);
     if (!current) {
       throw new BadRequestException("No session active");
+    }
+    if (ratio < 100) {
+      throw new BadRequestException("Not completed task mission");
     }
     const [voter, userVote] = await Promise.all([
       this.whitelistsModel.findOne({ _id: id, status: true }),
@@ -59,7 +67,10 @@ export class VotingsService {
 
   async getUserVotings(user: UsersDocument) {
     const now = Date.now();
-    const current = await this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } });
+    const [current, { ratio }] = await Promise.all([
+      this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } }),
+      this.missionsService.getUserMissions(user),
+    ]);
     if (!current) {
       throw new BadRequestException("No session active");
     }
@@ -116,14 +127,14 @@ export class VotingsService {
     for (const whitelist of whitelists) {
       const found = userVotes.find((a) => a.user_voted.toString() === whitelist._id.toString());
       result.push({
-        _id:  whitelist._id,
+        _id: whitelist._id,
         name: whitelist.name,
         avatar: whitelist.avatar,
         countVote: whitelist.countVote,
         status: found ? true : false,
       });
     }
-    return result;
+    return { ratio, result };
   }
 
   async addWhiteList(auth: string, body: CreateDto, file?: Express.Multer.File) {
