@@ -240,6 +240,7 @@ export class UsersService {
     userInfo.twitter_uid = tinfo.id;
     userInfo.twitter_username = tinfo.username;
     userInfo.twitter_avatar = tinfo?.profile_image_url;
+    userInfo.twitter_verified = tinfo?.verified;
     return userInfo.save();
   }
 }

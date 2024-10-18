@@ -29,17 +29,20 @@ export class Users {
   @Prop({ required: false, sparse: true })
   telegram_uid: number;
 
-  @Prop({ required: false, sparse: true })
+  @Prop({ required: false })
   telegram_username: string;
 
   @Prop({ required: false, sparse: true })
   twitter_uid: string;
 
-  @Prop({ required: false, sparse: true })
+  @Prop({ required: false })
   twitter_username: string;
 
-  @Prop({ required: false, sparse: true })
+  @Prop({ required: false, })
   twitter_avatar: string;
+
+  @Prop({ required: false, default: false })
+  twitter_verified: boolean;
 
   @Prop({ required: true, default: false })
   banned: boolean;
