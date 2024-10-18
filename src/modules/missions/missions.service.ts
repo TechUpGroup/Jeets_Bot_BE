@@ -60,9 +60,11 @@ export class MissionsService {
       this.userMissionsModel.find({ user: user._id }),
     ]);
     const result: any[] = [];
+    let ratio = 0;
     for (const mission of missions) {
       const found = userMiss.find((u) => u.mission.toString() === mission._id.toString());
       if (found) {
+        ratio += mission.ratio;
         result.push({
           ...mission["_doc"],
           status: true,
@@ -74,7 +76,7 @@ export class MissionsService {
         });
       }
     }
-    return result;
+    return { ratio, result };
   }
 
   async createMission(auth: string, body: CreateMissionDto, file?: Express.Multer.File) {
