@@ -163,7 +163,7 @@ class Config {
     return this.getBlockChainInfo(network, "provider");
   }
 
-  getContract(network: Network, key: ContractName) {
+  getContract() {
     const pools = [
       "Ba5LSmzQjhi5bCz1GwUmNvhH59UdAgnGKeH7YoR8KXPg",
       "cE6fMRnkA8AcTXBTvWbHxXoBGoDENhmN9rd59mh5FEb",
@@ -176,10 +176,12 @@ class Config {
       "4RAVBWfSkoiNUwEMZkVu1mypd2Tc8gcXNT6XtVncMyPu",
       "5uyEauM9x5nJ5KLUm8BYUQHYnkZ7E4J13skw3DAobV3o"
     ];
-    const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
+    const votes = [
+      ""
+    ]
     return {
       pools,
-      tx_creator: tx_creator || "",
+      votes,
     };
   }
 

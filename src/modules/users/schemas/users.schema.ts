@@ -41,8 +41,8 @@ export class Users {
   @Prop({ required: false, })
   twitter_avatar: string;
 
-  @Prop({ required: false, default: false })
-  twitter_verified: boolean;
+  @Prop({ required: false })
+  twitter_verified_type: string;
 
   @Prop({ required: false, default: 0 })
   twitter_followers_count: number;

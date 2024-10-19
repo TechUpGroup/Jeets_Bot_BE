@@ -77,7 +77,7 @@ export class ContractsService {
       }[] = [];
 
       for (const network of allNetworks) {
-        for (const address of config.getContract(network, ContractName.POOL).pools) {
+        for (const address of config.getContract().pools) {
           contractCreate.push({
             contract_address: address,
             tx_synced: undefined,
@@ -85,10 +85,18 @@ export class ContractsService {
             network,
           });
         }
+        for (const address of config.getContract().votes) {
+          contractCreate.push({
+            contract_address: address,
+            tx_synced: undefined,
+            name: ContractName.VOTE,
+            network,
+          });
+        }
       }
 
       for (const contract of contractCreate) {
-        const { contract_address, name, network } = contract;
+        const { contract_address, network } = contract;
         if (!contract_address) continue;
         if (!(await this.checkContractExist(contract_address, network))) {
           await this.createContract(contract);

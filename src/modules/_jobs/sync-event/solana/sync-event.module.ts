@@ -4,16 +4,20 @@ import { UsersModule } from "modules/users/users.module";
 import { ContractsModule } from "modules/contracts/contracts.module";
 import { HistoriesModule } from "modules/histories/histories.module";
 import { JobSyncEventService } from "./services/sync-event-pool.service";
+import { VotingsModule } from "modules/votings/votings.module";
+import { JobSyncEventVotingService } from "./services/sync-event-voting.service";
 
 @Module({
   imports: [
     forwardRef(() => UsersModule),
     forwardRef(() => ContractsModule),
     forwardRef(() => HistoriesModule),
+    VotingsModule,
   ],
   providers: [
     HelperSolanaService,
     JobSyncEventService,
+    // JobSyncEventVotingService
   ],
 })
 export class SyncEventSolanaModule {}

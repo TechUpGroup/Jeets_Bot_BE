@@ -13,10 +13,10 @@ export class VotingsController {
   constructor(private readonly votingsService: VotingsService) { }
 
   @Auth()
-  @Post("action/:id")
+  @Post("create-vote/:wid")
   @ApiOperation({ summary: "User performs task" })
-  action(@User() user: UsersDocument, @Param('id') id: string) {
-    return this.votingsService.action(user, id);
+  createVote(@User() user: UsersDocument, @Param('wid') wid: number) {
+    return this.votingsService.createVote(user, wid);
   }
 
   @Auth()

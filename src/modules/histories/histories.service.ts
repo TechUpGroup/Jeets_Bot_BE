@@ -3,7 +3,7 @@ import { PaginateModel } from "mongoose";
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
-import { HISTORIES_MODEL, Histories, HistoriesDocument } from "./schemas/histories.schema";
+import { HISTORIES_MODEL, Histories, HistoriesDocument, VOTING_HISTORIES_MODEL, VotingHistories, VotingHistoriesDocument } from "./schemas/histories.schema";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 import { EVENT } from "common/constants/event";
 import { INIT_LOCKED } from "common/constants/asset";
@@ -14,7 +14,25 @@ export class HistoriesService {
   constructor(
     @InjectModel(HISTORIES_MODEL)
     private readonly historiesModel: PaginateModel<HistoriesDocument>,
+    @InjectModel(VOTING_HISTORIES_MODEL)
+    private readonly votingHistoriesModel: PaginateModel<VotingHistoriesDocument>,
   ) {}
+
+  async findTransactionVotingHashExists(hashes: string[]) {
+    if (!hashes.length) return [];
+    const result = await this.votingHistoriesModel.find(
+      { transaction_hash_index: { $in: hashes } },
+      { transaction_hash_index: 1 },
+    );
+    return result.map((o) => o.transaction_hash_index as string);
+  }
+
+  saveVotingHistories(items: VotingHistories | VotingHistories[]) {
+    if (Array.isArray(items)) {
+      return this.votingHistoriesModel.insertMany(items);
+    }
+    return this.votingHistoriesModel.create(items);
+  }
 
   async findTransactionHashExists(hashes: string[]) {
     if (!hashes.length) return [];
