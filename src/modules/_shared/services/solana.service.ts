@@ -131,10 +131,11 @@ export class SolanasService {
           })
           .signers([operator])
           .rpc();
-        await new Promise((r) => setTimeout(r, 10 * 1000));
       } catch (e) {
+        console.log(e);
         this.logsService.createLog("syncTransferToken", e)
       }
+      await new Promise((r) => setTimeout(r, 10 * 1000));
     }
 
   }
