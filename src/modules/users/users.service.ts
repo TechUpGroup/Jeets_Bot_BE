@@ -192,7 +192,7 @@ export class UsersService {
       code,
       grant_type: "authorization_code",
       client_id: config.twitter.clientId,
-      redirect_uri: config.twitter.callbackURL,
+      redirect_uri: config.twitter.callbackURL + "login",
       code_verifier: "challenge",
     }).toString();
     const result = await axios
