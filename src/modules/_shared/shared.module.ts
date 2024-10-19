@@ -7,9 +7,10 @@ import { CacheService } from "./services/cache.service";
 import { S3Service } from "./services/s3.service";
 import { SolanasService } from "./services/solana.service";
 import { TelegramService } from "./services/telegram.service";
+import { XModule } from "./x/x.module";
 
 const providers = [CacheService, S3Service, SolanasService, TelegramService];
-const modules = [HttpModule, LogsModule];
+const modules = [HttpModule, LogsModule, XModule];
 
 @Global()
 @Module({
