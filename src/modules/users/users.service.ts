@@ -6,16 +6,16 @@ import { InjectModel } from "@nestjs/mongoose";
 import { USERS_MODEL, UsersDocument } from "./schemas/users.schema";
 import { ErrorMessages } from "./users.constant";
 import { Network } from "common/enums/network.enum";
-import { base64Encode, telegramCheckAuth } from "common/utils";
+import { telegramCheckAuth } from "common/utils";
 import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
-import axios from "axios";
-import config from "common/config";
+import { XService } from "modules/_shared/x/x.service";
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(USERS_MODEL)
     private readonly usersModel: PaginateModel<UsersDocument>,
+    private readonly xService: XService,
   ) {}
 
   async queryUsers(filter: any, options: any) {
@@ -187,61 +187,56 @@ export class UsersService {
     }
   }
 
-  async getAccessToken(code: string) {
-    const data = new URLSearchParams({
-      code,
-      grant_type: "authorization_code",
-      client_id: config.twitter.clientId,
-      redirect_uri: config.twitter.callbackURL,
-      code_verifier: "challenge",
-    }).toString();
-    const result = await axios
-      .post("https://api.twitter.com/2/oauth2/token", data, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${base64Encode(`${config.twitter.clientId}:${config.twitter.clientSecret}`)}`,
-        },
-      })
-      .catch((error) => {
-        console.error(data, error?.response?.data || error);
-      });
-
-    //
-    if (!result) {
-      throw new BadRequestException("Cannot get access_token");
-    }
-    return result.data.access_token;
-  }
-
   async twitterConnect(user: UsersDocument, { code }: ConnectTwitterDto) {
     if (user.twitter_uid) {
-      throw new BadRequestException(
-        "User with this wallet address already connected twitter with twitter_uid " + user.twitter_uid,
-      );
+      throw new BadRequestException("This user already connected twitter with twitter_uid " + user.twitter_uid);
     }
-    const [userInfo, access_token] = await Promise.all([this.getUser(user._id), this.getAccessToken(code)]);
-    const uinfo = await axios
-      .get("https://api.twitter.com/2/users/me?user.fields=created_at,description,entities,id,location,most_recent_tweet_id,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${access_token}`,
-        },
+    const [userInfo, resultToken] = await Promise.all([
+      this.getUser(user._id),
+      this.xService.obtainingAccessToken(code),
+    ]);
+    const userMe = await resultToken.client.v2
+      .me({
+        "user.fields": [
+          "created_at",
+          "description",
+          "entities",
+          "id",
+          "location",
+          "name",
+          "pinned_tweet_id",
+          "profile_image_url",
+          "protected",
+          "public_metrics",
+          "url",
+          "username",
+          "verified",
+          "verified_type",
+          "withheld",
+        ],
       })
       .catch((error) => {
-        console.error({ access_token }, error?.response?.data || error);
+        console.error({ accessToken: resultToken.accessToken }, error?.response?.data || error);
       });
 
-    if (!uinfo) {
+    if (!userMe) {
       throw new BadRequestException("Cannot get user_info");
     }
 
+    const otherUser = await this.usersModel.findOne({ twitter_uid: userMe.data.id });
+    if (otherUser && otherUser._id !== userInfo._id) {
+      throw new BadRequestException("This twitter user already connected to other user.");
+    }
+
+    // save access token
+    await this.xService.updateToken(userMe.data.id, resultToken);
+
     // save
-    const { data: tinfo } = uinfo.data;
-    userInfo.twitter_uid = tinfo.id;
-    userInfo.twitter_username = tinfo.username;
-    userInfo.twitter_avatar = tinfo?.profile_image_url;
-    userInfo.twitter_verified = !tinfo?.verified_type ? false : true;
-    userInfo.twitter_followers_count = tinfo?.public_metrics?.followers_count || 0;
+    userInfo.twitter_uid = userMe.data.id;
+    userInfo.twitter_username = userMe.data.username;
+    userInfo.twitter_avatar = userMe.data?.profile_image_url || "";
+    userInfo.twitter_verified = !userMe.data?.verified_type ? false : true;
+    userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
     return userInfo.save();
   }
 }
