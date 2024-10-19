@@ -119,6 +119,7 @@ class Config {
     return {
       api_key: this.getString("telegram.api_key"),
       bot_id: this.getString("telegram.bot_id"),
+      origin_url: this.getString("telegram.origin_url"),
       callback_url: this.getString("telegram.callback_url"),
     };
   }
