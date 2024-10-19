@@ -25,7 +25,7 @@ export class UsersController {
   @Get("telegram/start")
   @ApiOperation({ summary: "Redirect to telegram to auth (Open this in browser)" })
   @Redirect(
-    `https://oauth.telegram.org/auth?bot_id=${config.telegram.bot_id}&origin=${config.telegram.callback_url}&request_access=write&return_to=${config.telegram.bot_id}`,
+    `https://oauth.telegram.org/auth?bot_id=${config.telegram.bot_id}&origin=${config.telegram.callback_url}&request_access=write&return_to=${config.telegram.callback_url + "/login"}`,
   )
   async telegramStart() {}
 
@@ -41,7 +41,7 @@ export class UsersController {
     `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${
       config.twitter.clientId
     }&redirect_uri=${encodeURIComponent(
-      config.twitter.callbackURL,
+      config.twitter.callbackURL + "login",
     )}&scope=tweet.read%20users.read%20follows.read%20follows.write%20offline.access&state=twitter&code_challenge=challenge&code_challenge_method=plain`,
   )
   async twitterStart() {}
