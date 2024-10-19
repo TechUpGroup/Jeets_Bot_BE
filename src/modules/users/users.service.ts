@@ -221,7 +221,7 @@ export class UsersService {
     }
     const [userInfo, access_token] = await Promise.all([this.getUser(user._id), this.getAccessToken(code)]);
     const uinfo = await axios
-      .get("https://api.twitter.com/2/users/me", {
+      .get("https://api.twitter.com/2/users/me?user.fields=created_at,description,entities,id,location,most_recent_tweet_id,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,verified_type,withheld", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${access_token}`,
@@ -241,6 +241,7 @@ export class UsersService {
     userInfo.twitter_username = tinfo.username;
     userInfo.twitter_avatar = tinfo?.profile_image_url;
     userInfo.twitter_verified = tinfo?.verified;
+    userInfo.twitter_followers_count = tinfo?.public_metrics?.followers_count || 0;
     return userInfo.save();
   }
 }

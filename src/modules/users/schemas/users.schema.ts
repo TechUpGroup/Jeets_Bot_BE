@@ -44,6 +44,9 @@ export class Users {
   @Prop({ required: false, default: false })
   twitter_verified: boolean;
 
+  @Prop({ required: false, default: 0 })
+  twitter_followers_count: number;
+
   @Prop({ required: true, default: false })
   banned: boolean;
 
