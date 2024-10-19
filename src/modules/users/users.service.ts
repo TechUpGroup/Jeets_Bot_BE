@@ -235,7 +235,7 @@ export class UsersService {
     userInfo.twitter_uid = userMe.data.id;
     userInfo.twitter_username = userMe.data.username;
     userInfo.twitter_avatar = userMe.data?.profile_image_url || "";
-    userInfo.twitter_verified = !userMe.data?.verified_type ? false : true;
+    userInfo.twitter_verified_type = userMe.data?.verified_type || "";
     userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
     return userInfo.save();
   }
