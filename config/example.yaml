@@ -53,6 +53,7 @@ list_rpcs: []
 telegram:
   api_key: ''
   bot_id: ''
+  origin_url: ""
   callback_url: ""
 
 twitter:
