@@ -135,7 +135,7 @@ export class VotingsService {
         status: found ? true : false,
       });
     }
-    return { ratio, result };
+    return { current, ratio, result };
   }
 
   async addWhiteList(auth: string, body: CreateDto, file?: Express.Multer.File) {
