@@ -72,6 +72,7 @@ export class ContractsService {
       const contractCreate: {
         contract_address: string;
         tx_synced?: string;
+        total_supply?: string;
         name: ContractName;
         network: Network;
       }[] = [];
@@ -82,6 +83,37 @@ export class ContractsService {
             contract_address: address,
             tx_synced: undefined,
             name: ContractName.POOL,
+            network,
+          });
+        }
+      }
+      for (const network of allNetworks) {
+        for (const address of config.getContract(network, ContractName.POOL).pools) {
+          contractCreate.push({
+            contract_address: address,
+            tx_synced: undefined,
+            name: ContractName.POOL,
+            network,
+          });
+        }
+      }
+      for (const network of allNetworks) {
+        for (const address of config.getContract(network, ContractName.POOL).pools) {
+          contractCreate.push({
+            contract_address: address,
+            tx_synced: undefined,
+            name: ContractName.POOL,
+            network,
+          });
+        }
+      }
+      for (const network of allNetworks) {
+        for (const { mint,  totalSupply} of config.getContract(network, ContractName.TOKEN).tokens) {
+          contractCreate.push({
+            contract_address: mint,
+            tx_synced: undefined,
+            name: ContractName.TOKEN,
+            total_supply: totalSupply,
             network,
           });
         }

@@ -176,10 +176,15 @@ class Config {
       "4RAVBWfSkoiNUwEMZkVu1mypd2Tc8gcXNT6XtVncMyPu",
       "5uyEauM9x5nJ5KLUm8BYUQHYnkZ7E4J13skw3DAobV3o"
     ];
-    const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
+    const tokens = [
+      {
+        mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
+        totalSupply: "1000000000000000"
+      }
+    ]
     return {
       pools,
-      tx_creator: tx_creator || "",
+      tokens,
     };
   }
 
