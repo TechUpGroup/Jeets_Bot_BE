@@ -96,6 +96,7 @@ export class XService {
       auth.accessToken = result.accessToken;
       auth.refreshToken = result.refreshToken!;
       auth.expireDate = new Date(new Date().getTime() + result.expiresIn * 1_000);
+      await auth.save();
     } else {
       await this.xAuthModel.create({
         uid,
@@ -115,7 +116,7 @@ export class XService {
       })
       .catch((err) => console.error(JSON.stringify(err, null, 2)));
     if (!result) {
-      throw new BadRequestException("Cannot get obtaining accessToken");
+      throw new BadRequestException("Cannot obtaining accessToken");
     }
     return result;
   }
@@ -123,7 +124,7 @@ export class XService {
   private async obtainingRefreshToken(refreshToken: string) {
     const result = await this.appClient.refreshOAuth2Token(refreshToken).catch(console.error);
     if (!result) {
-      throw new BadRequestException("Cannot get obtaining refreshToken");
+      throw new BadRequestException("Cannot obtaining refreshToken");
     }
     return result;
   }
