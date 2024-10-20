@@ -18,6 +18,9 @@ import { S3Service } from "modules/_shared/services/s3.service";
 import { MissionsService } from "modules/missions/missions.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { SolanasService } from "modules/_shared/services/solana.service";
+import { HoldersService } from "modules/holders/holders.service";
+import { Network } from "common/enums/network.enum";
+import BigNumber from "bignumber.js";
 
 @Injectable()
 export class VotingsService {
@@ -33,6 +36,7 @@ export class VotingsService {
     private readonly s3Service: S3Service,
     private readonly missionsService: MissionsService,
     private readonly solanasService: SolanasService,
+    private readonly holdersService: HoldersService,
   ) {}
 
   async createVote(user: UsersDocument, wid: number) {
@@ -40,9 +44,13 @@ export class VotingsService {
     if (!user.telegram_uid || !user.twitter_uid) {
       throw new BadRequestException("No connected social account");
     }
-    if (user.twitter_followers_count < 2000) {
-      throw new BadRequestException("Twitter follower minimum 2000");
-    }
+    // if (user.twitter_followers_count < 2000) {
+    //   throw new BadRequestException("Twitter follower minimum 2000");
+    // }
+    // const holder = await this.holdersService.holder(Network.solana, config.getContract().tokens[0].mint, user.address);
+    // if (!holder || BigNumber(holder.amount.toString()).lt("1000000000")) {
+    //   throw new BadRequestException("Holder 🌕 minimum 1000");
+    // }
     const [current, { ratio }] = await Promise.all([
       this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } }),
       this.missionsService.getUserMissions(user),
@@ -50,9 +58,9 @@ export class VotingsService {
     if (!current) {
       throw new BadRequestException("No session active");
     }
-    if (ratio < 100) {
-      throw new BadRequestException("Not completed task mission");
-    }
+    // if (ratio < 100) {
+    //   throw new BadRequestException("Not completed task mission");
+    // }
     const [voter, userVote] = await Promise.all([
       this.whitelistsModel.findOne({ wid, status: true }),
       this.userVotingsModel.findOne({ address: user.address, wid, vid: current.vid }),
@@ -71,12 +79,11 @@ export class VotingsService {
     const keys = datas.map((a) => {
       return `${a.address}_${a.vid}_${a.wid}`;
     });
-    const exists = await this.userVotingsModel.find({ key: { $in: keys } });
-    const keyExists = exists.map((a) => a.key);
+    const keyExists = await this.userVotingsModel.find({ key: { $in: keys } }).distinct("key");
     const bulkCreate: any[] = [];
     const bulkUpdate: any[] = [];
     for (const data of datas) {
-      if (!keyExists.includes(data.key)) {
+      if (!keyExists.includes(`${data.address}_${data.vid}_${data.wid}`)) {
         bulkCreate.push({
           address: data.address,
           vid: data.vid,

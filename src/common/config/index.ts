@@ -180,9 +180,16 @@ class Config {
     const votes = [
       "2aHQveN7pim8VECx4Hi9HagmhGWCdDdrdnYuAzczphoY"
     ]
+    const tokens = [
+      {
+        mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
+        totalSupply: "1000000000000000"
+      }
+    ]
     return {
       pools,
       votes,
+      tokens,
     };
   }
 

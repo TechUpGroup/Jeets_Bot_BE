@@ -15,6 +15,7 @@ import { JobModule } from "modules/_jobs/job.module";
 import { HistoriesModule } from "modules/histories/histories.module";
 import { VotingsModule } from "modules/votings/votings.module";
 import { MissionsModule } from "modules/missions/missions.module";
+import { HoldersModule } from "modules/holders/holders.module";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MissionsModule } from "modules/missions/missions.module";
     HistoriesModule,
     MissionsModule,
     VotingsModule,
+    HoldersModule
   ],
   providers: [
     { provide: APP_FILTER, useClass: I18nAllExceptionFilter },
