@@ -158,18 +158,27 @@ export const telegramCheckAuth = (authData: any) => {
     return false;
   }
 
-  const secret = crypto
-    .createHash("sha256")
-    .update(config.telegram.api_key)
-    .digest();
+  const secret = crypto.createHash("sha256").update(config.telegram.api_key).digest();
   const sortedKeys = Object.keys(data).sort();
-  const dataCheckString = sortedKeys
-    .map((key) => `${key}=${data[key]}`)
-    .join("\n");
-  const hmac = crypto
-    .createHmac("sha256", secret)
-    .update(dataCheckString)
-    .digest("hex");
+  const dataCheckString = sortedKeys.map((key) => `${key}=${data[key]}`).join("\n");
+  const hmac = crypto.createHmac("sha256", secret).update(dataCheckString).digest("hex");
 
   return hmac === hash;
-}
+};
+
+export const onDay = (date1: Date, date2: Date) => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
+
+export const diffDay = (date1: Date, date2: Date) => {
+  date1.setHours(0, 0, 0);
+  date2.setHours(0, 0, 0);
+
+  const diffInMilliseconds = date1.getTime() - date2.getTime();
+
+  return diffInMilliseconds / (1000 * 60 * 60 * 24);
+};

@@ -4,9 +4,10 @@ import { Document, SchemaTypes, Types } from "mongoose";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Network } from "common/enums/network.enum";
 import { isNil } from "lodash";
-import { EVENT } from "common/constants/event";
+import { EVENT, EVENT_VOTING } from "common/constants/event";
 
 export const HISTORIES_MODEL = "histories";
+export const VOTING_HISTORIES_MODEL = "voting-histories";
 
 @Schema(Options)
 export class Histories {
@@ -49,3 +50,36 @@ export class Histories {
 }
 export type HistoriesDocument = Histories & Document;
 export const HistoriesSchema = SchemaFactory.createForClass(Histories);
+
+@Schema(Options)
+export class VotingHistories {
+  @Prop({ required: true, index: true, enum: EVENT_VOTING })
+  event: EVENT_VOTING;
+
+  @Prop({ required: true, index: true, enum: Network })
+  network: Network;
+
+  @Prop({ required: true, index: true })
+  transaction_hash: string;
+
+  @Prop({ required: true, index: true })
+  log_index: number;
+
+  @Prop({
+    required: false,
+    unique: true,
+    sparse: true,
+    default: function () {
+      const { transaction_hash, log_index, network } = this;
+      if (transaction_hash && !isNil(log_index) && network) {
+        return `${transaction_hash}_${log_index}_${network}`;
+      }
+    },
+  })
+  transaction_hash_index?: string;
+
+  @Prop({ required: true, index: true })
+  timestamp: number;
+}
+export type VotingHistoriesDocument = VotingHistories & Document;
+export const VotingHistoriesSchema = SchemaFactory.createForClass(VotingHistories);

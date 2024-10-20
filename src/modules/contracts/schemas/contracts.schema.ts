@@ -15,6 +15,9 @@ export class Contracts {
   @Prop({ required: false })
   tx_synced?: string;
 
+  @Prop({ required: false })
+  total_supply?: string;
+
   @Prop({ required: true, enum: ContractName })
   name: string;
 
