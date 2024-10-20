@@ -44,13 +44,10 @@ export class VotingsService {
     if (!user.telegram_uid || !user.twitter_uid) {
       throw new BadRequestException("No connected social account");
     }
-    // if (user.twitter_followers_count < 2000) {
-    //   throw new BadRequestException("Twitter follower minimum 2000");
-    // }
-    // const holder = await this.holdersService.holder(Network.solana, config.getContract().tokens[0].mint, user.address);
-    // if (!holder || BigNumber(holder.amount.toString()).lt("1000000000")) {
-    //   throw new BadRequestException("Holder 🌕 minimum 1000");
-    // }
+    const holder = await this.holdersService.holder(Network.solana, config.getContract().tokens[0].mint, user.address);
+    if (!holder || BigNumber(holder.amount.toString()).lt("2000000000")) {
+      throw new BadRequestException("Holder 🌕 minimum 2000");
+    }
     const [current, { ratio }] = await Promise.all([
       this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } }),
       this.missionsService.getUserMissions(user),
@@ -203,6 +200,18 @@ export class VotingsService {
     } catch (e) {
       throw new BadRequestException(e);
     }
+  }
+
+  async addUserToWhiteList(user: UsersDocument) {
+    const lastWL = await this.whitelistsModel.find().sort({ wid: -1 }).limit(1);
+    const currentWID = lastWL.length ? lastWL[0].wid + 1 : 1;
+    const data: any = {
+      wid: currentWID,
+      name: user.twitter_username,
+      avatar: user.twitter_avatar,
+      status: true,
+    };
+    return this.whitelistsModel.create(data);
   }
 
   async createSessionVote(auth: string, body: CreateSessionVoteDto) {

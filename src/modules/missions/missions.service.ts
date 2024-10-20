@@ -14,6 +14,9 @@ import { TelegramService } from "modules/_shared/services/telegram.service";
 import { XService } from "modules/_shared/x/x.service";
 import { RedisService } from "modules/_shared/services/redis.service";
 import { REDIS_KEY } from "common/constants/redis";
+import { VotingsService } from "modules/votings/votings.service";
+import { HoldersService } from "modules/holders/holders.service";
+import { Network } from "common/enums/network.enum";
 
 @Injectable()
 export class MissionsService {
@@ -26,6 +29,7 @@ export class MissionsService {
     private readonly telegramService: TelegramService,
     private readonly xService: XService,
     private readonly redisService: RedisService,
+    private readonly votingsService: VotingsService,
   ) {}
 
   async action(user: UsersDocument, id: string) {
@@ -35,9 +39,10 @@ export class MissionsService {
     if (!user.telegram_uid) {
       throw new BadRequestException("User not connected telegram");
     }
-    const [mission, userMiss] = await Promise.all([
+    const [mission, userMiss, { ratio }] = await Promise.all([
       this.missionsModel.findOne({ _id: id, status: true }),
       this.userMissionsModel.findOne({ mission: id, user: user._id }),
+      this.getUserMissions(user),
     ]);
     if (!mission) {
       throw new BadRequestException("Mission not found");
@@ -77,8 +82,11 @@ export class MissionsService {
             }
         }
       }
-
-      check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined;
+      await Promise.all([
+        check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined,
+        // check && ratio + mission.ratio >= 100 && user.twitter_followers_count >= 2000 && user.twitter_verified_type ? this.votingsService.addUserToWhiteList(user) : undefined,
+        check && ratio + mission.ratio >= 100 &&  user.twitter_followers_count >= 1000 ? this.votingsService.addUserToWhiteList(user) : undefined,
+      ])
     }
     return check;
   }
