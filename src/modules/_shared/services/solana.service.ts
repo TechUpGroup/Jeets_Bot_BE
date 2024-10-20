@@ -3,7 +3,7 @@ import { allNetworks } from "common/constants/network";
 import { Network } from "common/enums/network.enum";
 import { SignerType } from "common/enums/signer.enum";
 
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { AnchorProvider, BN, Wallet, web3 } from "@project-serum/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
@@ -18,10 +18,12 @@ import { ScJeetsSol, Voting } from "common/idl/jeets";
 interface SolanaProvider {
   connection: web3.Connection;
   connectionConfirmed: web3.Connection;
+  connectionVoting: web3.Connection;
   connectionConfirmedVoting: web3.Connection;
   signers: Map<SignerType, web3.Keypair>;
   provider: AnchorProvider;
   providerEvent: AnchorProvider;
+  providerVoting: AnchorProvider;
 }
 
 export interface SolanaEvents {
@@ -64,19 +66,21 @@ export class SolanasService {
   private readonly solanaMap: Map<Network, SolanaProvider>;
   private readonly programMap: Map<string, anchor.Program<ScJeetsSol>>;
 
-  constructor(
-    private readonly logsService: LogsService
-  ) {
+  constructor(private readonly logsService: LogsService) {
     this.solanaMap = new Map<Network, SolanaProvider>();
     this.programMap = new Map<string, anchor.Program<ScJeetsSol>>();
     for (const network of allNetworks) {
       const connection: web3.Connection = new web3.Connection(config.listRPC[0], "recent");
-      const connectionConfirmed: web3.Connection = new web3.Connection(
-        config.listRPC[1],
-        "confirmed",
+      const connectionConfirmed: web3.Connection = new web3.Connection(config.listRPC[1], "confirmed");
+      const connectionVoting: web3.Connection = new web3.Connection(
+        // config.listRPC[2],
+        "https://fragrant-blissful-star.solana-devnet.quiknode.pro/5629d355a6f0bed5c3b119832967d4639481e5a4",
+        "recent",
       );
+
       const connectionConfirmedVoting: web3.Connection = new web3.Connection(
-        config.listRPC[2],
+        // config.listRPC[2],
+        "https://fragrant-blissful-star.solana-devnet.quiknode.pro/5629d355a6f0bed5c3b119832967d4639481e5a4",
         "confirmed",
       );
 
@@ -86,16 +90,32 @@ export class SolanasService {
       if (authority) signerTypes.set(SignerType.authority, this.loadKeyPair(authority));
 
       const wallet = new Wallet(this.loadKeyPair(operator));
+      const walletAuthority = new Wallet(this.loadKeyPair(authority));
       const provider = new AnchorProvider(connection, wallet, {
         commitment: "processed",
       });
       const providerEvent = new AnchorProvider(connection, wallet, {
         commitment: "confirmed",
       });
-      this.solanaMap.set(network, { connection, connectionConfirmed, connectionConfirmedVoting, signers: signerTypes, provider, providerEvent });
+      const providerVoting = new AnchorProvider(connectionVoting, walletAuthority, {
+        commitment: "confirmed",
+      });
+      this.solanaMap.set(network, {
+        connection,
+        connectionConfirmed,
+        connectionVoting,
+        connectionConfirmedVoting,
+        signers: signerTypes,
+        provider,
+        providerEvent,
+        providerVoting,
+      });
       for (const address of config.getContract().pools) {
         common.address = address;
-        const anchorProgram = new anchor.Program(common as ScJeetsSol, this.getProvider(Network.solana) as anchor.AnchorProvider);
+        const anchorProgram = new anchor.Program(
+          common as ScJeetsSol,
+          this.getProvider(Network.solana) as anchor.AnchorProvider,
+        );
         this.programMap.set(address, anchorProgram);
       }
     }
@@ -118,11 +138,10 @@ export class SolanasService {
           .rpc();
       } catch (e) {
         console.log(e);
-        this.logsService.createLog("syncTransferToken", e)
+        this.logsService.createLog("syncTransferToken", e);
       }
       await new Promise((r) => setTimeout(r, 10 * 1000));
     }
-
   }
 
   getProgram(address: string) {
@@ -162,6 +181,10 @@ export class SolanasService {
     return this.getNetwork(network).connectionConfirmed;
   }
 
+  getConnectionVoting(network: Network) {
+    return this.getNetwork(network).connectionVoting;
+  }
+
   getConnectionConfirmedVoting(network: Network) {
     return this.getNetwork(network).connectionConfirmedVoting;
   }
@@ -172,6 +195,10 @@ export class SolanasService {
 
   getProviderEvent(network: Network) {
     return this.getNetwork(network).providerEvent;
+  }
+
+  getProviderVoting(network: Network) {
+    return this.getNetwork(network).providerVoting;
   }
 
   getSigner(network: Network, type: SignerType) {
@@ -218,29 +245,35 @@ export class SolanasService {
   }
 
   eventParserVoting(network: Network, idl: any) {
-    const program = new anchor.Program(idl as Voting, this.getProviderEvent(network) as anchor.AnchorProvider);
+    const program = new anchor.Program(idl as Voting, this.getProviderVoting(network) as anchor.AnchorProvider);
     return new anchor.EventParser(program.programId, program.coder);
   }
 
   async votingInstruction(userAddress: string, vid: number, wid: number) {
     const network = Network.solana;
-    const program = new anchor.Program(votingIDL as Voting, this.getProvider(network) as anchor.AnchorProvider);
-    const authority = this.getSigner(network, SignerType.authority);
+    const program = new anchor.Program(votingIDL as Voting, this.getProviderVoting(network) as anchor.AnchorProvider);
+    const operator = this.getSigner(network, SignerType.authority);
     const userPubkey = new web3.PublicKey(userAddress);
-    const transaction = await program.methods
-      .vote(
-        new BN(vid),
-        [new BN(wid)]
-      )
-      .accounts({
-        user: userPubkey,
-      })
-      .transaction();
-    transaction.recentBlockhash = (await this.getConnection(network).getLatestBlockhash()).blockhash;
-    transaction.feePayer = userPubkey;
-    transaction.add(modifyComputeUnits).add(addPriorityFee);
-    transaction.partialSign(authority);
-    return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+    try {
+      const transaction = new web3.Transaction();
+      const voteInstruction = await program.methods
+        .vote(new BN(vid), [new BN(wid)])
+        .accounts({
+          user: userPubkey,
+        })
+        .accountsPartial({
+          operator: operator.publicKey,
+        })
+        .instruction();
+      transaction.add(voteInstruction);
+      transaction.recentBlockhash = (await this.getConnectionVoting(network).getLatestBlockhash()).blockhash;
+      transaction.feePayer = userPubkey;
+      transaction.add(modifyComputeUnits).add(addPriorityFee);
+      transaction.partialSign(operator);
+      return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
   }
 
   async getAllEventTransactions(
@@ -282,7 +315,7 @@ export class SolanasService {
               });
             }
           }
-        } catch { }
+        } catch {}
       }
     }
 
@@ -329,7 +362,7 @@ export class SolanasService {
               });
             }
           }
-        } catch { }
+        } catch {}
       }
     }
 
