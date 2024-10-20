@@ -10,7 +10,7 @@ import { HistoriesService } from "modules/histories/histories.service";
 import { HelperSolanaService } from "./_helper-solana.service";
 import { SolanasService } from "modules/_shared/services/solana.service";
 import { Network } from "common/enums/network.enum";
-import { common } from "common/idl/pool";
+import { votingIDL } from "common/idl/pool";
 import { IEventParams } from "../interfaces/helper-solana.interface";
 import { VotingsService } from "modules/votings/votings.service";
 const acceptEvents = [EVENT_VOTING.VOTED];
@@ -35,7 +35,7 @@ export class JobSyncEventVotingService {
       if (this.isRunning[contract.contract_address]) continue;
       this.isRunning[contract.contract_address] = true;
       try {
-        const eventParser = this.solanasService.eventParser(Network.solana, common);
+        const eventParser = this.solanasService.eventParserVoting(Network.solana, votingIDL);
         await this.helperService.excuteSync({
           contract,
           acceptEvents,

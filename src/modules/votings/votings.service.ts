@@ -17,6 +17,7 @@ import { CreateDto, CreateSessionVoteDto } from "./dto/votings.dto";
 import { S3Service } from "modules/_shared/services/s3.service";
 import { MissionsService } from "modules/missions/missions.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { SolanasService } from "modules/_shared/services/solana.service";
 
 @Injectable()
 export class VotingsService {
@@ -31,10 +32,17 @@ export class VotingsService {
     private readonly votingDashboardsModel: PaginateModel<VotingDashboardsDocument>,
     private readonly s3Service: S3Service,
     private readonly missionsService: MissionsService,
+    private readonly solanasService: SolanasService,
   ) {}
 
   async createVote(user: UsersDocument, wid: number) {
     const now = Date.now();
+    if (!user.telegram_uid || !user.twitter_uid) {
+      throw new BadRequestException("No connected social account");
+    }
+    if (user.twitter_followers_count < 2000) {
+      throw new BadRequestException("Twitter follower minimum 2000");
+    }
     const [current, { ratio }] = await Promise.all([
       this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } }),
       this.missionsService.getUserMissions(user),
@@ -55,7 +63,8 @@ export class VotingsService {
     if (userVote) {
       throw new BadRequestException("Voted");
     }
-    return { status: "success" };
+    const tx = await this.solanasService.votingInstruction(user.address, current.vid, wid);
+    return tx.toString("base64");
   }
 
   async processVoting(datas: any[]) {

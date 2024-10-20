@@ -144,6 +144,7 @@ class Config {
   getBlockchainPrivateKey(network: Network) {
     return {
       operator: this.getString(`blockchain.${network}.operator`),
+      authority: this.getString(`blockchain.${network}.authority`),
     }
   }
 
@@ -177,7 +178,7 @@ class Config {
       "5uyEauM9x5nJ5KLUm8BYUQHYnkZ7E4J13skw3DAobV3o"
     ];
     const votes = [
-      ""
+      "2aHQveN7pim8VECx4Hi9HagmhGWCdDdrdnYuAzczphoY"
     ]
     return {
       pools,
