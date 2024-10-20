@@ -106,7 +106,7 @@ export class VotingsService {
         });
       }
     }
-    await Promise.all([this.userVotingsModel.bulkWrite(bulkCreate), this.votingDashboardsModel.bulkWrite(bulkUpdate)]);
+    await Promise.all([this.userVotingsModel.insertMany(bulkCreate), this.votingDashboardsModel.bulkWrite(bulkUpdate)]);
   }
 
   async getUserVotings(user: UsersDocument) {
