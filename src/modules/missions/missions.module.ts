@@ -13,7 +13,7 @@ import { VotingsModule } from "modules/votings/votings.module";
     MongooseModule.forFeature([{ name: MISSIONS_MODEL, schema: MissionsSchema }]),
     MongooseModule.forFeature([{ name: USER_MISSIONS_MODEL, schema: UserMissionsSchema }]),
     forwardRef(() => UsersModule),
-    VotingsModule
+    forwardRef(() => VotingsModule),
   ],
   providers: [MissionsService],
   controllers: [MissionsController],

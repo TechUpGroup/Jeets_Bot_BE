@@ -1,6 +1,6 @@
 import { PaginateModel } from "mongoose";
 
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, forwardRef, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
 import { VOTINGS_MODEL, VotingsDocument } from "./schemas/votings.schema";
@@ -34,6 +34,7 @@ export class VotingsService {
     @InjectModel(VOTING_DASHBOARDS_MODEL)
     private readonly votingDashboardsModel: PaginateModel<VotingDashboardsDocument>,
     private readonly s3Service: S3Service,
+    @Inject(forwardRef(() => MissionsService))
     private readonly missionsService: MissionsService,
     private readonly solanasService: SolanasService,
     private readonly holdersService: HoldersService,
