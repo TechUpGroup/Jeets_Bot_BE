@@ -58,9 +58,9 @@ export class VotingsService {
     if (!current) {
       throw new BadRequestException("No session active");
     }
-    // if (ratio < 100) {
-    //   throw new BadRequestException("Not completed task mission");
-    // }
+    if (ratio < 100) {
+      throw new BadRequestException("Not completed task mission");
+    }
     const [voter, userVote] = await Promise.all([
       this.whitelistsModel.findOne({ wid, status: true }),
       this.userVotingsModel.findOne({ address: user.address, wid, vid: current.vid }),
