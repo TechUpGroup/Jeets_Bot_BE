@@ -10,7 +10,7 @@ server:
 swagger:
   name: Backend API
   doc_url: /api/docs
-  description: Backend 
+  description: Backend
   version: 1.0
   is_auth: false
   username: root
@@ -18,6 +18,11 @@ swagger:
 
 mongodb:
   uri: mongodb://localhost:27017/jeets_bot_dev
+
+redis:
+  enable: true
+  uri: redis://localhost/0
+  prefix: soljeets
 
 i18n:
   fallback_language: en
@@ -28,12 +33,12 @@ jwt:
   refresh_expiration_days: 30
 
 aws:
-  access_key_id: ''
-  secret_access_key: ''
+  access_key_id: ""
+  secret_access_key: ""
   s3_bucket: soljeets
   s3_path: tokens
   region_name: us-east-1
-  domain: 'soljeets.s3.amazonaws.com'
+  domain: "soljeets.s3.amazonaws.com"
 
 authAdmin: ""
 
@@ -47,8 +52,8 @@ blockchain:
 list_rpcs: []
 
 telegram:
-  api_key: ''
-  bot_id: ''
+  api_key: ""
+  bot_id: ""
   origin_url: ""
   callback_url: ""
 

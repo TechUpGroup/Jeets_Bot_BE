@@ -22,8 +22,8 @@ import { HoldersModule } from "modules/holders/holders.module";
     // global module
     ...(config.cron ? [ScheduleModule.forRoot()] : []),
     MongooseModule.forRoot(config.mongoose.uri, config.mongoose.options),
-    CacheModule.register({ isGlobal: true }),
-    // CacheModule.register(config.redisConfig),
+    // CacheModule.register({ isGlobal: true }),
+    CacheModule.register(config.redisConfig),
     I18nModule.forRoot({
       fallbackLanguage: config.fallbackLanguage,
       loaderOptions: {

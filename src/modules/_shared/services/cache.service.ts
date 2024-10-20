@@ -7,6 +7,10 @@ import { CACHE_MANAGER } from "@nestjs/cache-manager";
 export class CacheService {
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
+  public getStore() {
+    return this.cacheManager.store;
+  }
+
   public async setKey(key: string, data: string, ttl: number): Promise<void> {
     await this.cacheManager.set(key, data, ttl);
   }

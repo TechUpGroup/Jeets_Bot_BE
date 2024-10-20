@@ -9,8 +9,11 @@ import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
 import { CreateMissionDto, UpdateMissionDto } from "./dto/mission.dto";
 import { S3Service } from "modules/_shared/services/s3.service";
-import { SOCAIL_TYPE } from "common/enums/common";
+import { SOCAIL_TYPE, X_ACTION_TYPE } from "common/enums/common";
 import { TelegramService } from "modules/_shared/services/telegram.service";
+import { XService } from "modules/_shared/x/x.service";
+import { RedisService } from "modules/_shared/services/redis.service";
+import { REDIS_KEY } from "common/constants/redis";
 
 @Injectable()
 export class MissionsService {
@@ -21,6 +24,8 @@ export class MissionsService {
     private readonly userMissionsModel: PaginateModel<UserMissionsDocument>,
     private readonly s3Service: S3Service,
     private readonly telegramService: TelegramService,
+    private readonly xService: XService,
+    private readonly redisService: RedisService,
   ) {}
 
   async action(user: UsersDocument, id: string) {
@@ -38,15 +43,37 @@ export class MissionsService {
       throw new BadRequestException("Mission not found");
     }
 
+    // rate limit
+    const cacheKey = REDIS_KEY.MISSION_ACTION + "-" + user._id.toString() + "-" + mission._id.toString();
+    const incr = await this.redisService.incr(cacheKey);
+    if (incr > 1) {
+      throw new BadRequestException("Too many request");
+    } else {
+      await this.redisService.expire(cacheKey, 60);
+    }
+
     let check = false;
     if (!userMiss) {
-      //verify
+      // verify
       if (mission.type === SOCAIL_TYPE.TELEGRAM) {
         check = await this.telegramService.checkSubscribeTelegram(user, mission.name_chat);
       }
 
       if (mission.type === SOCAIL_TYPE.X) {
-        check = false;
+        switch (mission.x_action_type) {
+          case X_ACTION_TYPE.FOLLOW:
+            check = await this.xService.isFollowing(user.twitter_uid, mission.x_uid);
+            break;
+          case X_ACTION_TYPE.LIKE:
+            if (mission.x_uid) {
+              check = await this.xService.isLiking(user.twitter_uid, mission.x_uid);
+            }
+            break;
+          case X_ACTION_TYPE.RETWEET:
+            if (mission.x_uid) {
+              check = await this.xService.isRetweet(user.twitter_uid, mission.x_uid);
+            }
+        }
       }
 
       check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined;
@@ -101,6 +128,26 @@ export class MissionsService {
           "&url=" +
           body.link;
       }
+      //
+      let x_action_type: any = undefined;
+      let x_uid: any = undefined;
+      if (body.type === SOCAIL_TYPE.X) {
+        if (body.name.match(/follow/gim)) {
+          x_action_type = X_ACTION_TYPE.FOLLOW;
+          const username = body.link.split(".com/")[1].split("/")[0];
+          const tInfo = await this.xService.getUserInfo(username);
+          x_uid = tInfo.id;
+        }
+        if (body.name.match(/like/gim)) {
+          x_action_type = X_ACTION_TYPE.LIKE;
+          x_uid = body.link.split("status/")?.[1]?.split("/")?.[0];
+        }
+        if (body.name.match(/retweet/gim)) {
+          x_action_type = X_ACTION_TYPE.RETWEET;
+          x_uid = body.link.split("status/")?.[1]?.split("/")?.[0];
+        }
+      }
+      //
       const lastMissions = await this.missionsModel.find().sort({ mid: -1 }).limit(1);
       const currentMID = lastMissions.length ? lastMissions[0].mid + 1 : 1;
       const data: any = {
@@ -109,6 +156,8 @@ export class MissionsService {
         mission_image,
         action_link: missionActionLink,
         status: true,
+        x_action_type,
+        x_uid,
       };
       return this.missionsModel.create(data);
     } catch (e) {
@@ -142,9 +191,29 @@ export class MissionsService {
             "&url=" +
             body.link;
         }
+        let x_action_type: any = undefined;
+        let x_uid: any = undefined;
+        if (body.type === SOCAIL_TYPE.X) {
+          if (body.name.match(/follow/gim)) {
+            x_action_type = X_ACTION_TYPE.FOLLOW;
+            const username = body.link.split(".com/")[1].split("/")[0];
+            const tInfo = await this.xService.getUserInfo(username);
+            x_uid = tInfo.id;
+          }
+          if (body.name.match(/like/gim)) {
+            x_action_type = X_ACTION_TYPE.LIKE;
+            x_uid = body.link.split("status/")?.[1]?.split("/")?.[0];
+          }
+          if (body.name.match(/retweet/gim)) {
+            x_action_type = X_ACTION_TYPE.RETWEET;
+            x_uid = body.link.split("status/")?.[1]?.split("/")?.[0];
+          }
+        }
         data = {
           ...data,
           action_link: missionActionLink,
+          x_uid,
+          x_action_type,
         };
       }
       return this.missionsModel.findOneAndUpdate({ mid }, { ...data }, { new: true });
