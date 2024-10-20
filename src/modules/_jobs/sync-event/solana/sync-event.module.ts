@@ -17,7 +17,7 @@ import { JobSyncEventVotingService } from "./services/sync-event-voting.service"
   providers: [
     HelperSolanaService,
     JobSyncEventService,
-    // JobSyncEventVotingService
+    JobSyncEventVotingService
   ],
 })
 export class SyncEventSolanaModule {}
