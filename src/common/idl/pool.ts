@@ -760,6 +760,10 @@ export const votingIDL = {
               {
                 "kind": "arg",
                 "path": "session"
+              },
+              {
+                "kind": "arg",
+                "path": "uid"
               }
             ]
           }
@@ -874,9 +878,7 @@ export const votingIDL = {
         },
         {
           "name": "uid",
-          "type": {
-            "vec": "u64"
-          }
+          "type": "u64"
         }
       ]
     }
@@ -954,9 +956,7 @@ export const votingIDL = {
           },
           {
             "name": "uid",
-            "type": {
-              "vec": "u64"
-            }
+            "type": "u64"
           },
           {
             "name": "session",

@@ -257,7 +257,7 @@ export class SolanasService {
     try {
       const transaction = new web3.Transaction();
       const voteInstruction = await program.methods
-        .vote(new BN(vid), [new BN(wid)])
+        .vote(new BN(vid), new BN(wid))
         .accounts({
           user: userPubkey,
         })

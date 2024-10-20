@@ -760,6 +760,10 @@ export type Voting = {
               {
                 "kind": "arg",
                 "path": "session"
+              },
+              {
+                "kind": "arg",
+                "path": "uid"
               }
             ]
           }
@@ -874,9 +878,7 @@ export type Voting = {
         },
         {
           "name": "uid",
-          "type": {
-            "vec": "u64"
-          }
+          "type": "u64"
         }
       ]
     }
@@ -954,9 +956,7 @@ export type Voting = {
           },
           {
             "name": "uid",
-            "type": {
-              "vec": "u64"
-            }
+            "type": "u64"
           },
           {
             "name": "session",
