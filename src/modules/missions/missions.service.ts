@@ -44,12 +44,14 @@ export class MissionsService {
     }
 
     // rate limit
-    const cacheKey = REDIS_KEY.MISSION_ACTION + "-" + user._id.toString() + "-" + mission._id.toString();
-    const incr = await this.redisService.incr(cacheKey);
-    if (incr > 1) {
-      throw new BadRequestException("Too many request");
-    } else {
-      await this.redisService.expire(cacheKey, 60);
+    if (mission.type === SOCAIL_TYPE.X) {
+      const cacheKey = REDIS_KEY.MISSION_ACTION + "-" + user._id.toString() + "-" + mission._id.toString();
+      const incr = await this.redisService.incr(cacheKey);
+      if (incr > 1) {
+        throw new BadRequestException("Too many request");
+      } else {
+        await this.redisService.expire(cacheKey, 60);
+      }
     }
 
     let check = false;
