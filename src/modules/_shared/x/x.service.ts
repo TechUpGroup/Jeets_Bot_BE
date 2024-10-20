@@ -3,7 +3,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { PaginateModel } from "mongoose";
 import { X_AUTH_MODEL, XAuthDocument } from "./schemas/x-auth.schema";
 import config from "common/config";
-import TwitterApi, { IParsedOAuth2TokenResult } from "twitter-api-v2";
+import TwitterApi, { IParsedOAuth2TokenResult, UsersV2Params } from "twitter-api-v2";
 
 @Injectable()
 export class XService {
@@ -51,6 +51,17 @@ export class XService {
       throw new BadRequestException("isRetweet: cannot process retweet.");
     }
     return retweet.data.retweeted;
+  }
+
+  async getUserInfo(username: string, options?: Partial<UsersV2Params>) {
+    const auth = await this.xAuthModel.findOne({}).sort({ updatedAt: -1 });
+    if (!auth) {
+      throw new BadRequestException("getUserInfo: access token not exists");
+    }
+    const token = await this.getAccessToken(auth.uid);
+    const twitterClient = new TwitterApi(token);
+    const data = await twitterClient.v2.userByUsername(username, options);
+    return data.data;
   }
 
   async getAccessToken(uid: string) {
