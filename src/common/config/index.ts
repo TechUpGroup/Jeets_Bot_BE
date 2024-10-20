@@ -62,12 +62,13 @@ class Config {
 
   get redisConfig(): CacheModuleOptions {
     return {
+      enable: this.getBoolean("redis.enable"),
       isGlobal: true,
       store: redisStore,
       url: this.getString("redis.uri"),
       prefix: `${this.getString("redis.prefix")}_${this.nodeEnv}_`,
       ttl: 10,
-    };
+    } as any;
   }
 
   get jwt() {
