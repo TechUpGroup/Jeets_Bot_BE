@@ -46,7 +46,16 @@ export class XService {
   async isRetweet(originUid: string, targetTweetId: string) {
     const token = await this.getAccessToken(originUid);
     const twitterClient = new TwitterApi(token);
-    const retweet = await twitterClient.v2.retweet(originUid, targetTweetId).catch(console.error);
+    const retweet = await twitterClient.v2.retweet(originUid, targetTweetId).catch((err) => {
+      if (err.errors?.[0]?.message?.indexOf("retweeted") > -1) {
+        return {
+          data: {
+            retweeted: true,
+          },
+        };
+      }
+      console.error(err);
+    });
     if (!retweet) {
       throw new BadRequestException("isRetweet: cannot process retweet.");
     }
