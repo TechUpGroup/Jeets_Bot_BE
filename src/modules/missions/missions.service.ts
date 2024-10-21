@@ -7,7 +7,7 @@ import { MISSIONS_MODEL, MissionsDocument } from "./schemas/missions.schema";
 import { USER_MISSIONS_MODEL, UserMissionsDocument } from "./schemas/user-missions.schema";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
-import { CreateMissionDto, UpdateMissionDto } from "./dto/mission.dto";
+import { CreateMissionDto, MissionXVerifyDto, UpdateMissionDto } from "./dto/mission.dto";
 import { S3Service } from "modules/_shared/services/s3.service";
 import { SOCAIL_TYPE, X_ACTION_TYPE } from "common/enums/common";
 import { TelegramService } from "modules/_shared/services/telegram.service";
@@ -15,8 +15,7 @@ import { XService } from "modules/_shared/x/x.service";
 import { RedisService } from "modules/_shared/services/redis.service";
 import { REDIS_KEY } from "common/constants/redis";
 import { VotingsService } from "modules/votings/votings.service";
-import { HoldersService } from "modules/holders/holders.service";
-import { Network } from "common/enums/network.enum";
+import { UsersService } from "modules/users/users.service";
 
 @Injectable()
 export class MissionsService {
@@ -31,9 +30,64 @@ export class MissionsService {
     private readonly redisService: RedisService,
     @Inject(forwardRef(() => VotingsService))
     private readonly votingsService: VotingsService,
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
   ) {}
 
-  async action(user: UsersDocument, id: string) {
+  async actionStart(user: UsersDocument, id: string) {
+    if (!user.twitter_uid) {
+      throw new BadRequestException("User not connected twitter");
+    }
+    const mission = await this.missionsModel.findOne({ _id: id, status: true });
+    if (!mission) {
+      throw new BadRequestException("Mission not found");
+    }
+    if (mission.type !== SOCAIL_TYPE.X) {
+      throw new BadRequestException("Only X missions are allowed");
+    }
+    return {
+      redirectUrl: `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${
+        config.twitter.clientId
+      }&redirect_uri=${encodeURIComponent(
+        config.twitter.callbackURL,
+      )}&scope=tweet.read%20tweet.write%20users.read%20follows.read%20follows.write%20like.read%20like.write%20offline.access&state=mission-x-${id}&code_challenge=challenge&code_challenge_method=plain`,
+    };
+  }
+
+  async actionTwitter(user: UsersDocument, mission: MissionsDocument, data: MissionXVerifyDto) {
+    let check = false;
+    if (!data?.code) {
+      throw new BadRequestException("Missing code");
+    }
+    // rate limit
+    const cacheKey = REDIS_KEY.MISSION_ACTION + "-" + user._id.toString() + "-" + mission._id.toString();
+    const incr = await this.redisService.incr(cacheKey);
+    if (incr > 1) {
+      throw new BadRequestException("Too many request");
+    } else {
+      await this.redisService.expire(cacheKey, 3);
+    }
+    // connect
+    await this.usersService.twitterConnect(user, { code: data.code }, true);
+    // action
+    switch (mission.x_action_type) {
+      case X_ACTION_TYPE.FOLLOW:
+        check = await this.xService.isFollowing(user.twitter_uid, mission.x_uid);
+        break;
+      case X_ACTION_TYPE.LIKE:
+        if (mission.x_uid) {
+          check = await this.xService.isLiking(user.twitter_uid, mission.x_uid);
+        }
+        break;
+      case X_ACTION_TYPE.RETWEET:
+        if (mission.x_uid) {
+          check = await this.xService.isRetweet(user.twitter_uid, mission.x_uid);
+        }
+    }
+    return check;
+  }
+
+  async action(user: UsersDocument, id: string, data: MissionXVerifyDto) {
     if (!user.twitter_uid) {
       throw new BadRequestException("User not connected twitter");
     }
@@ -49,45 +103,20 @@ export class MissionsService {
       throw new BadRequestException("Mission not found");
     }
 
-    // rate limit
-    if (mission.type === SOCAIL_TYPE.X) {
-      const cacheKey = REDIS_KEY.MISSION_ACTION + "-" + user._id.toString() + "-" + mission._id.toString();
-      const incr = await this.redisService.incr(cacheKey);
-      if (incr > 1) {
-        throw new BadRequestException("Too many request");
-      } else {
-        await this.redisService.expire(cacheKey, 60);
-      }
-    }
-
     let check = false;
     if (!userMiss) {
       // verify
       if (mission.type === SOCAIL_TYPE.TELEGRAM) {
         check = await this.telegramService.checkSubscribeTelegram(user, mission.name_chat);
       }
-
       if (mission.type === SOCAIL_TYPE.X) {
-        switch (mission.x_action_type) {
-          case X_ACTION_TYPE.FOLLOW:
-            check = await this.xService.isFollowing(user.twitter_uid, mission.x_uid);
-            break;
-          case X_ACTION_TYPE.LIKE:
-            if (mission.x_uid) {
-              check = await this.xService.isLiking(user.twitter_uid, mission.x_uid);
-            }
-            break;
-          case X_ACTION_TYPE.RETWEET:
-            if (mission.x_uid) {
-              check = await this.xService.isRetweet(user.twitter_uid, mission.x_uid);
-            }
-        }
+        check = await this.actionTwitter(user, mission, data);
       }
       await Promise.all([
         check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined,
         // check && ratio + mission.ratio >= 100 && user.twitter_followers_count >= 2000 && user.twitter_verified_type ? this.votingsService.addUserToWhiteList(user) : undefined,
         check && ratio + mission.ratio >= 100 ? this.votingsService.addUserToWhiteList(user) : undefined,
-      ])
+      ]);
     }
     return check;
   }

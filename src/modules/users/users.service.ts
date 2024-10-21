@@ -187,8 +187,8 @@ export class UsersService {
     }
   }
 
-  async twitterConnect(user: UsersDocument, { code }: ConnectTwitterDto) {
-    if (user.twitter_uid) {
+  async twitterConnect(user: UsersDocument, { code }: ConnectTwitterDto, forceReconnect = false) {
+    if (!forceReconnect && user.twitter_uid) {
       throw new BadRequestException("This user already connected twitter with twitter_uid " + user.twitter_uid);
     }
     const [userInfo, resultToken] = await Promise.all([
@@ -220,7 +220,7 @@ export class UsersService {
       });
 
     if (!userMe) {
-      throw new BadRequestException("Cannot get user_info");
+      throw new BadRequestException("Cannot get userInfo");
     }
 
     const otherUser = await this.usersModel.findOne({ twitter_uid: userMe.data.id });
@@ -237,6 +237,6 @@ export class UsersService {
     userInfo.twitter_avatar = userMe.data?.profile_image_url || "";
     userInfo.twitter_verified_type = userMe.data?.verified_type || "";
     userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
-    return userInfo.save();
+    return await userInfo.save();
   }
 }

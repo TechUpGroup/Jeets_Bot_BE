@@ -108,15 +108,19 @@ export class XService {
   }
 
   async obtainingAccessToken(code: string) {
+    let errorMessage = "";
     const result = await this.appClient
       .loginWithOAuth2({
         code,
         codeVerifier: "challenge",
         redirectUri: config.twitter.callbackURL,
       })
-      .catch((err) => console.error(JSON.stringify(err, null, 2)));
+      .catch((err) => {
+        errorMessage = err?.data?.error_description;
+        console.error(JSON.stringify(err, null, 2));
+      });
     if (!result) {
-      throw new BadRequestException("Cannot obtaining accessToken");
+      throw new BadRequestException("Cannot obtaining accessToken" + (errorMessage ? ": " + errorMessage : ""));
     }
     return result;
   }
