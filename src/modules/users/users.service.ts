@@ -229,7 +229,7 @@ export class UsersService {
     }
 
     const otherUser = await this.usersModel.findOne({ twitter_uid: userMe.data.id });
-    if (otherUser && otherUser._id !== userInfo._id) {
+    if (otherUser && otherUser._id.toString() !== user._id.toString()) {
       throw new BadRequestException("This twitter user already connected to other user.");
     }
 
