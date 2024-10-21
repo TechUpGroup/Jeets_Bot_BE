@@ -50,6 +50,9 @@ export class Users {
   @Prop({ required: true, default: false })
   banned: boolean;
 
+  @Prop({ required: true, default: 0 })
+  score: number;
+
   @Prop({ required: true, type: SchemaTypes.Decimal128, default: 0, min: 0  })
   balance: Types.Decimal128;
 }

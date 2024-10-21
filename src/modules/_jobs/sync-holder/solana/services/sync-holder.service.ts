@@ -9,16 +9,23 @@ import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
 import { HoldersService } from "modules/holders/holders.service";
 import { diffDay, onDay } from "common/utils";
+import axios from "axios";
+import { PricesService } from "modules/_shared/services/price.service";
+import { CacheService } from "modules/_shared/services/cache.service";
+
+export const KEY_PRICE_TOKEN = "all_price_token";
 
 @Injectable()
 export class JobSyncHolderService {
   constructor(
     private readonly logsService: LogsService,
+    private readonly cacheService: CacheService,
     private readonly contractService: ContractsService,
     private readonly holdersService: HoldersService,
+    private readonly pricesService: PricesService,
   ) {}
-  private isRunning = {};
 
+  private isRunning = {};
   @Cron(CronExpression.EVERY_30_MINUTES)
   private async start() {
     const contracts = await this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana);
@@ -37,6 +44,26 @@ export class JobSyncHolderService {
       } finally {
         delete this.isRunning[mint];
       }
+    }
+  }
+
+  private isRunningPriceToken = false;
+  @Cron(CronExpression.EVERY_MINUTE, { name: "startPriceToken" })
+  private async startPriceToken() {
+    const [contracts, allPrice] = await Promise.all([
+      this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana),
+      this.pricesService.getAllPrice(),
+    ]);
+    if (!contracts.length || this.isRunningPriceToken) return;
+    this.isRunningPriceToken = true;
+    const tokenAddresses = contracts.map(a => a.contract_address);
+    try {
+      const infos = await this.getInfoTokensOnDexscreener(tokenAddresses, allPrice["SOL"]);
+    } catch (err) {
+      console.log(err);
+      this.logsService.createLog("startPriceToken -> start: ", err);
+    } finally {
+      this.isRunningPriceToken = false;
     }
   }
 
@@ -77,8 +104,12 @@ export class JobSyncHolderService {
     const bulkUpdate: any[] = [];
     const holdersSaved = await this.holdersService.holders(network, mint);
     for (const holder of holders) {
-      const found = holdersSaved.find(a => a.owner === holder.owner);
-      const inc = found ? onDay(timestamp, new Date(found.last_updated)) ? 0 : diffDay(timestamp, new Date(found.last_updated)) : 1;
+      const found = holdersSaved.find((a) => a.owner === holder.owner);
+      const inc = found
+        ? onDay(timestamp, new Date(found.last_updated))
+          ? 0
+          : diffDay(timestamp, new Date(found.last_updated))
+        : 1;
       bulkUpdate.push({
         updateOne: {
           filter: {
@@ -99,8 +130,26 @@ export class JobSyncHolderService {
         },
       });
     }
-    await Promise.all([
-      bulkUpdate.length ? this.holdersService.bulkWrite(bulkUpdate) : undefined
-    ])
+    await Promise.all([bulkUpdate.length ? this.holdersService.bulkWrite(bulkUpdate) : undefined]);
+  }
+
+  private async getInfoTokensOnDexscreener(addresses: string[], priceSOL: string) {
+    const infos: any = {};
+    try {
+      const tokenAddreeses = addresses.join(",");
+      const res = await axios.get("https://api.dexscreener.com/latest/dex/tokens/" + tokenAddreeses);
+      if (res.data && res.data.pairs && res.data.pairs.length) {
+        for (const address of addresses) {
+          const found = res.data.pairs.find((a) => a.baseToken.address === address);
+          if (found) {
+            infos[address] = BigNumber(found.priceUsd).dividedBy(priceSOL).toFixed(0);
+          }
+        }
+      }
+    } catch (e) {
+      this.logsService.createLog("getInfoTokensOnDexscreener", e);
+    }
+    console.log("=> Price Token: ", JSON.stringify(infos));
+    await this.cacheService.setKey(KEY_PRICE_TOKEN, JSON.stringify(infos), 15 * 60 * 1000);
   }
 }

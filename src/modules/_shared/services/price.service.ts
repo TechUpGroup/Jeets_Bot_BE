@@ -3,15 +3,16 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 
 import { CacheService } from "./cache.service";
 import axios from "axios";
+import { KEY_PRICE_TOKEN } from "modules/_jobs/sync-holder/solana/services/sync-holder.service";
 
 export const KEY_PRICE_COINGECKO = "all_price_coingecko";
 
 export enum Token {
-  ETH = "ethereum",
+  SOL = "solana",
 }
 
 @Injectable()
-export class CoingeckoService {
+export class PricesService {
   constructor(private readonly cacheService: CacheService) {
     void this.start();
   }
@@ -31,6 +32,11 @@ export class CoingeckoService {
     }
   }
 
+  async getAllPriceToken() {
+    const cachedPrice = await this.cacheService.getKey(KEY_PRICE_TOKEN);
+    if (cachedPrice) return JSON.parse(cachedPrice);
+  }
+
   async getAllPrice(isCache = true) {
     if (isCache) {
       const cachedPrice = await this.cacheService.getKey(KEY_PRICE_COINGECKO);
@@ -45,7 +51,7 @@ export class CoingeckoService {
     for (const [key, name] of Object.entries(Token)) {
       res[key] = prices[name].usd;
     }
-    await this.cacheService.setKey(KEY_PRICE_COINGECKO, JSON.stringify(res), 6 * 60 * 1000);
+    await this.cacheService.setKey(KEY_PRICE_COINGECKO, JSON.stringify(res), 15 * 60 * 1000);
     console.log("=> Price: ", JSON.stringify(res));
     return res;
   }
