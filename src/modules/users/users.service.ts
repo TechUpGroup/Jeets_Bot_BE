@@ -223,6 +223,11 @@ export class UsersService {
       throw new BadRequestException("Cannot get userInfo");
     }
 
+    // check match connected user.
+    if (forceReconnect && userMe.data.id !== user.twitter_uid) {
+      throw new BadRequestException("X user does not match the connected X user.");
+    }
+
     const otherUser = await this.usersModel.findOne({ twitter_uid: userMe.data.id });
     if (otherUser && otherUser._id !== userInfo._id) {
       throw new BadRequestException("This twitter user already connected to other user.");
