@@ -114,8 +114,14 @@ export class MissionsService {
       }
       await Promise.all([
         check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined,
-        // check && ratio + mission.ratio >= 100 && user.twitter_followers_count >= 2000 && user.twitter_verified_type ? this.votingsService.addUserToWhiteList(user) : undefined,
-        check && ratio + mission.ratio >= 100 ? this.votingsService.addUserToWhiteList(user) : undefined,
+        check &&
+        ratio + mission.ratio >= 100 &&
+        user.twitter_followers_count >= 2000 &&
+        user?.twitter_verified_type &&
+        user?.twitter_verified_type !== "none"
+          ? this.votingsService.addUserToWhiteList(user)
+          : undefined,
+        // check && ratio + mission.ratio >= 100 ? this.votingsService.addUserToWhiteList(user) : undefined,
       ]);
     }
     return check;
