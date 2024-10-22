@@ -45,6 +45,12 @@ export class VotingsService {
     if (!user.telegram_uid || !user.twitter_uid) {
       throw new BadRequestException("No connected social account");
     }
+    if (!user?.twitter_verified_type || user.twitter_verified_type === "none") {
+      throw new BadRequestException("Twitter not verified");
+    }
+    if (user.twitter_followers_count < 2000) {
+      throw new BadRequestException("Twitter follower minimum 2000");
+    }
     const holder = await this.holdersService.holder(Network.solana, config.getContract().tokens[0].mint, user.address);
     if (!holder || BigNumber(holder.amount.toString()).lt("2000000000")) {
       throw new BadRequestException("Holder minimum 2000🌕");
