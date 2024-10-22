@@ -25,6 +25,7 @@ class Config {
       host: this.getString("server.host"),
       port: this.getNumber("server.port"),
       url: this.getString("server.url"),
+      tracking_url: this.getString("server.tracking_url"),
     };
   }
 

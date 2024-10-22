@@ -10,7 +10,7 @@ import {
   VOTING_DASHBOARDS_MODEL,
   VotingDashboardsDocument,
 } from "./schemas/user-votings.schema";
-import { UsersDocument } from "modules/users/schemas/users.schema";
+import { USERS_MODEL, UsersDocument } from "modules/users/schemas/users.schema";
 import { WHITELIST_MODEL, WhitelistsDocument } from "./schemas/whitelist.schema";
 import config from "common/config";
 import { CreateDto, CreateSessionVoteDto } from "./dto/votings.dto";
@@ -21,6 +21,8 @@ import { SolanasService } from "modules/_shared/services/solana.service";
 import { HoldersService } from "modules/holders/holders.service";
 import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
+import axios from "axios";
+import { LogsService } from "modules/logs/logs.service";
 
 @Injectable()
 export class VotingsService {
@@ -38,6 +40,7 @@ export class VotingsService {
     private readonly missionsService: MissionsService,
     private readonly solanasService: SolanasService,
     private readonly holdersService: HoldersService,
+    private readonly logsService: LogsService,
   ) {}
 
   async createVote(user: UsersDocument, wid: number) {
@@ -216,6 +219,7 @@ export class VotingsService {
       wid: currentWID,
       name: user.twitter_username,
       avatar: user.twitter_avatar,
+      address: user.address,
       status: true,
     };
     return this.whitelistsModel.create(data);
@@ -238,6 +242,58 @@ export class VotingsService {
     }
   }
 
+  async getListWinnerYesterday() {
+    {
+      const timestamp = new Date();
+      timestamp.setDate(timestamp.getDate() - 1);
+      timestamp.setHours(0, 0, 0);
+      const startTime = timestamp.getTime();
+      const endTime = timestamp.getTime() + 86400000;
+      const sessionYesterday = await this.votingsModel.findOne({ start_time: startTime, end_time: endTime });
+      if (sessionYesterday) {
+        return this.votingDashboardsModel
+          .aggregate([
+            {
+              $match: {
+                vid: sessionYesterday.vid,
+                count: { $gt: 0 }
+              },
+            },
+            {
+              $sort: {
+                count: -1,
+              },
+            },
+            {
+              $lookup: {
+                from: WHITELIST_MODEL,
+                localField: "wid",
+                foreignField: "wid",
+                as: "wl",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 0,
+                      address: 1,
+                      name: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: "$wl",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+          ])
+          .limit(10);
+      }
+      return [];
+    }
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: "syncSessionVoting" })
   async syncSessionVoting() {
     const lastS = await this.votingsModel.find().sort({ vid: -1 }).limit(1);
@@ -252,5 +308,48 @@ export class VotingsService {
       vid: currentVID,
     };
     return this.votingsModel.create(data);
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: "syncWinnerVotings" })
+  async syncWinnerVotings() {
+    const listWinners = await this.getListWinnerYesterday();
+    const bulkUpdate: any[] = [];
+    const datas: any[] = [];
+    for (const winner of listWinners) {
+      bulkUpdate.push({
+        updateOne: {
+          filter: {
+            wid: winner.wid,
+          },
+          update: {
+            status: false,
+          },
+        },
+      });
+      datas.push({ address: winner.wl.address, x_account: winner.wl.name });
+    }
+    await Promise.all([
+      bulkUpdate.length ? this.votingsModel.bulkWrite(bulkUpdate) : undefined,
+      datas.length ? this.addSourceAddressToTracking(datas) : undefined,
+    ]);
+  }
+
+  private async addSourceAddressToTracking(datas: any[]) {
+    try {
+      const body: any = {
+        auth: "monitor_2024",
+        datas,
+      };
+      await axios.post(`${config.server.tracking_url}/wallet/create/srcaddresses`, body, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+    } catch (e) {
+      console.log(e)
+      try {
+        this.logsService.createLog("addSourceAddressToTracking", e);
+      } catch {}
+    }
   }
 }
