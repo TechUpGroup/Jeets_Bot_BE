@@ -10,10 +10,10 @@ export class Votings {
   @Prop({ required: true, index: true, unique: true })
   vid: number;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   start_time: number;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   end_time: number;
 
   @Prop({ required: true, index: true, default: true })

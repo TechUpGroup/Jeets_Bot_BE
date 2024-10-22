@@ -16,6 +16,9 @@ export class Whitelists {
   @Prop({ required: true })
   avatar: string;
 
+  @Prop({ required: true })
+  address: string;
+
   @Prop({ required: true, index: true, default: true })
   status: boolean;
 }
