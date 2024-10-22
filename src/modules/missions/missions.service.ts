@@ -16,6 +16,9 @@ import { RedisService } from "modules/_shared/services/redis.service";
 import { REDIS_KEY } from "common/constants/redis";
 import { VotingsService } from "modules/votings/votings.service";
 import { UsersService } from "modules/users/users.service";
+import { Network } from "common/enums/network.enum";
+import { HoldersService } from "modules/holders/holders.service";
+import BigNumber from "bignumber.js";
 
 @Injectable()
 export class MissionsService {
@@ -32,6 +35,7 @@ export class MissionsService {
     private readonly votingsService: VotingsService,
     @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
+    private readonly holdersService: HoldersService,
   ) {}
 
   async actionStart(user: UsersDocument, id: string) {
@@ -94,16 +98,17 @@ export class MissionsService {
     if (!user.telegram_uid) {
       throw new BadRequestException("User not connected telegram");
     }
-    const [mission, userMiss, { ratio }] = await Promise.all([
+    const [mission, userMiss] = await Promise.all([
       this.missionsModel.findOne({ _id: id, status: true }),
       this.userMissionsModel.findOne({ mission: id, user: user._id }),
-      this.getUserMissions(user),
     ]);
+
     if (!mission) {
       throw new BadRequestException("Mission not found");
     }
 
     let check = false;
+    let checkVoting = false;
     if (!userMiss) {
       // verify
       if (mission.type === SOCAIL_TYPE.TELEGRAM) {
@@ -112,16 +117,23 @@ export class MissionsService {
       if (mission.type === SOCAIL_TYPE.X) {
         check = await this.actionTwitter(user, mission, data);
       }
+      if (check) {
+        const { ratio } = await this.getUserMissions(user);
+        if (ratio + mission.ratio >= 100) {
+          const holder = await this.holdersService.holder(Network.solana, config.getContract().tokens[0].mint, user.address);
+          if (holder && BigNumber(holder.amount.toString()).gte("2000000000")) {
+            checkVoting = true;
+          }
+        }
+      }
       await Promise.all([
         check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined,
-        check &&
-        ratio + mission.ratio >= 100 &&
+        checkVoting &&
         user.twitter_followers_count >= 2000 &&
         user?.twitter_verified_type &&
         user?.twitter_verified_type !== "none"
           ? this.votingsService.addUserToWhiteList(user)
           : undefined,
-        // check && ratio + mission.ratio >= 100 ? this.votingsService.addUserToWhiteList(user) : undefined,
       ]);
     }
     return check;
