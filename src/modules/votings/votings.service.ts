@@ -334,7 +334,7 @@ export class VotingsService {
         auth: "monitor_2024",
         datas,
       };
-      await axios.post("https://api-bot-solana.soljeets.com/wallet/create/srcaddresses", body, {
+      await axios.post(`${config.server.tracking_url}/wallet/create/srcaddresses`, body, {
         headers: {
           "Content-Type": "application/json"
         }
