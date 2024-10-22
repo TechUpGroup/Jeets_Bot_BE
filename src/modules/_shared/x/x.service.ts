@@ -46,7 +46,16 @@ export class XService {
   async isRetweet(originUid: string, targetTweetId: string) {
     const token = await this.getAccessToken(originUid);
     const twitterClient = new TwitterApi(token);
-    const retweet = await twitterClient.v2.retweet(originUid, targetTweetId).catch(console.error);
+    const retweet = await twitterClient.v2.retweet(originUid, targetTweetId).catch((err) => {
+      if (err.errors?.[0]?.message?.indexOf("retweeted") > -1) {
+        return {
+          data: {
+            retweeted: true,
+          },
+        };
+      }
+      console.error(err);
+    });
     if (!retweet) {
       throw new BadRequestException("isRetweet: cannot process retweet.");
     }
@@ -108,15 +117,19 @@ export class XService {
   }
 
   async obtainingAccessToken(code: string) {
+    let errorMessage = "";
     const result = await this.appClient
       .loginWithOAuth2({
         code,
         codeVerifier: "challenge",
         redirectUri: config.twitter.callbackURL,
       })
-      .catch((err) => console.error(JSON.stringify(err, null, 2)));
+      .catch((err) => {
+        errorMessage = err?.data?.error_description;
+        console.error(JSON.stringify(err, null, 2));
+      });
     if (!result) {
-      throw new BadRequestException("Cannot obtaining accessToken");
+      throw new BadRequestException("Cannot obtaining accessToken" + (errorMessage ? ": " + errorMessage : ""));
     }
     return result;
   }

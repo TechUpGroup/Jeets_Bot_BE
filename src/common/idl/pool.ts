@@ -587,7 +587,7 @@ export const common = {
 }
 
 export const votingIDL = {
-  "address": "2aHQveN7pim8VECx4Hi9HagmhGWCdDdrdnYuAzczphoY",
+  "address": "HeHN6998jMeBvpUoh5sc4c3JjRF5WwaqLKjXPJoFva8E",
   "metadata": {
     "name": "voting",
     "version": "0.1.0",

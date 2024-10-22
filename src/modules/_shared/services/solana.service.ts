@@ -12,7 +12,6 @@ import { common, votingIDL } from "common/idl/pool";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
-import { ContractName } from "common/constants/contract";
 import { ScJeetsSol, Voting } from "common/idl/jeets";
 
 interface SolanaProvider {
@@ -73,14 +72,12 @@ export class SolanasService {
       const connection: web3.Connection = new web3.Connection(config.listRPC[0], "recent");
       const connectionConfirmed: web3.Connection = new web3.Connection(config.listRPC[1], "confirmed");
       const connectionVoting: web3.Connection = new web3.Connection(
-        // config.listRPC[2],
-        "https://fragrant-blissful-star.solana-devnet.quiknode.pro/5629d355a6f0bed5c3b119832967d4639481e5a4",
+        config.listRPC[2],
         "recent",
       );
 
       const connectionConfirmedVoting: web3.Connection = new web3.Connection(
-        // config.listRPC[2],
-        "https://fragrant-blissful-star.solana-devnet.quiknode.pro/5629d355a6f0bed5c3b119832967d4639481e5a4",
+        config.listRPC[2],
         "confirmed",
       );
 
