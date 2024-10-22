@@ -250,6 +250,7 @@ export class VotingsService {
             {
               $match: {
                 vid: sessionYesterday.vid,
+                count: { $gt: 0 }
               },
             },
             {
@@ -268,6 +269,7 @@ export class VotingsService {
                     $project: {
                       _id: 0,
                       address: 1,
+                      name: 1,
                     },
                   },
                 ],
@@ -306,7 +308,7 @@ export class VotingsService {
   async syncWinnerVotings() {
     const listWinners = await this.getListWinnerYesterday();
     const bulkUpdate: any[] = [];
-    const addresses: any[] = [];
+    const datas: any[] = [];
     for (const winner of listWinners) {
       bulkUpdate.push({
         updateOne: {
@@ -318,20 +320,21 @@ export class VotingsService {
           },
         },
       });
-      addresses.push(winner.wl.address);
+      datas.push({ address: winner.wl.address, x_account: winner.wl.name });
     }
     await Promise.all([
       bulkUpdate.length ? this.votingsModel.bulkWrite(bulkUpdate) : undefined,
-      addresses.length ? this.addSourceAddressToTracking(addresses) : undefined,
+      datas.length ? this.addSourceAddressToTracking(datas) : undefined,
     ]);
   }
 
-  private async addSourceAddressToTracking(addresses: string[]) {
+  private async addSourceAddressToTracking(datas: any[]) {
     try {
       const body: any = {
-        addresses,
+        auth: "monitor_2024",
+        datas,
       };
-      await axios.post("/wallet/create/srcaddress", body, {
+      await axios.post("https://api-bot-solana.soljeets.com/wallet/create/srcaddresses", body, {
         headers: {
           "Content-Type": "application/json"
         }
