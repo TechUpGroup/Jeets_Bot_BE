@@ -1,9 +1,48 @@
-import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
 
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ToBoolean } from "common/decorators/transforms.decorator";
+import { ToArray, ToBoolean } from "common/decorators/transforms.decorator";
+import { CAMPAIGN_TYPE } from "common/enums/common";
+
+export class Details {
+  @ApiProperty()
+  @IsString()
+  synbol: string;
+
+  @ApiProperty()
+  @IsString()
+  mint: string;
+
+  @ApiProperty()
+  @IsNumber()
+  amount: number;
+}
 
 export class CreateNewCampaignDto {
+  @ApiProperty({
+    default: "Holder"
+  })
+  @IsString()
+  name: string;
+
+  @ApiProperty({
+    enum: CAMPAIGN_TYPE,
+    default: CAMPAIGN_TYPE.HOLD_TOKEN
+  })
+  @IsEnum(CAMPAIGN_TYPE)
+  type: string;
+
+  @ApiProperty()
+  @IsArray()
+  @ToArray()
+  detail: Details[];
+
+  @ApiProperty({
+    default: 0
+  })
+  @IsNumber()
+  score: number;
+
   @ApiProperty({
     default: Date.now()
   })
@@ -15,36 +54,4 @@ export class CreateNewCampaignDto {
   })
   @IsNumber()
   end_time: number;
-
-}
-
-export class CreateDto {
-  @ApiProperty({
-    default: "Follow X"
-  })
-  @IsString()
-  name: string;
-
-  @ApiPropertyOptional({ type: "string", format: "binary" })
-  @IsOptional()
-  file?: Express.Multer.File;
-}
-
-export class UpdateDto {
-  @ApiPropertyOptional({
-    default: "Follow X"
-  })
-  @IsOptional()
-  @IsString()
-  name: string;
-
-  @ApiPropertyOptional({ type: "string", format: "binary" })
-  @IsOptional()
-  file?: Express.Multer.File;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsBoolean()
-  @ToBoolean()
-  status?: boolean;
 }

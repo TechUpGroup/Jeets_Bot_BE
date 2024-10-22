@@ -17,7 +17,7 @@ export class CampaignsController {
     return this.campaignsService.getCampaignHistories(user);
   }
 
-  @Post("create-new-Campaign")
+  @Post("create-new-campaign")
   createNewCampaign(@Headers('auth') auth: string, @Body() body: CreateNewCampaignDto) {
     return this.campaignsService.createNewCampaign(auth, body);
   }

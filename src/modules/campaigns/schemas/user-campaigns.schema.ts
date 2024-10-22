@@ -1,52 +1,26 @@
 import { Options } from "common/config/mongoose.config";
-import { Document } from "mongoose";
+import { Document, SchemaTypes } from "mongoose";
 
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { USERS_MODEL } from "modules/users/schemas/users.schema";
 
 export const USER_CAMPAIGNS_MODEL = "user-campaigns";
-export const VOTING_DASHBOARDS_MODEL = "voting-dashboards";
 
 @Schema(Options)
 export class UserCampaigns {
-  @Prop({ required: true, index: true })
-  address: string;
+  @Prop({ type: SchemaTypes.ObjectId, index: true, ref: USERS_MODEL })
+  user: string;
 
   @Prop({ required: true, index: true })
-  vid: number;
-
-  @Prop({ required: true, index: true })
-  wid: number;
-
-  @Prop({
-    required: false,
-    unique: true,
-    default: function () {
-      const { address, vid, wid } = this;
-      return `${address}_${vid}_${wid}`;
-    },
-  })
-  key: string;
+  cid: number;
 
   @Prop({ required: false, default: new Date() })
   timestamp: Date;
+
+  @Prop({ required: true, index: true, default: true })
+  status: boolean;
 }
 
 export type UserCampaignsDocument = UserCampaigns & Document;
 export const UserCampaignsSchema = SchemaFactory.createForClass(UserCampaigns);
-UserCampaignsSchema.index({ address: 1, vid: 1, wid: 1 }, { unique: true });
-
-@Schema(Options)
-export class VotingDashboards {
-  @Prop({ required: true, index: true })
-  vid: number;
-
-  @Prop({ required: true, index: true })
-  wid: number;
-
-  @Prop({ required: true, default: 0 })
-  count: number;
-}
-
-export type VotingDashboardsDocument = VotingDashboards & Document;
-export const VotingDashboardsSchema = SchemaFactory.createForClass(VotingDashboards);
-VotingDashboardsSchema.index({ vid: 1, wid: 1 }, { unique: true });
+UserCampaignsSchema.index({ user: 1, cid: 1 }, { unique: true });

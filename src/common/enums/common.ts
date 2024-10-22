@@ -13,3 +13,7 @@ export enum X_ACTION_TYPE {
   LIKE = "like",
   RETWEET = "retweet",
 }
+
+export enum CAMPAIGN_TYPE {
+  HOLD_TOKEN = "Hold Token"
+}

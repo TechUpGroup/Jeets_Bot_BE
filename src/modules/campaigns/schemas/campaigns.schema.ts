@@ -2,10 +2,11 @@ import { Options } from "common/config/mongoose.config";
 import { Document } from "mongoose";
 
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { CAMPAIGN_TYPE } from "common/enums/common";
 
 export const CAMPAIGNS_MODEL = "campaigns";
 
-@Schema({ timestamps: false })
+@Schema({ _id: false, timestamps: false })
 export class Details {
   @Prop({ required: true })
   synbol: string;
@@ -26,8 +27,8 @@ export class Campaigns {
   @Prop({ required: false })
   name: string;
 
-  @Prop({ required: false })
-  type: string;
+  @Prop({ required: false, enum: CAMPAIGN_TYPE, default: CAMPAIGN_TYPE.HOLD_TOKEN })
+  type: CAMPAIGN_TYPE;
 
   @Prop({ required: false, type: [DetailsSchema], default: [] })
   detail: Details[];

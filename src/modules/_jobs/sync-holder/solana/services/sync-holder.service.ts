@@ -1,7 +1,7 @@
 import { ContractsService } from "modules/contracts/contracts.service";
 import { LogsService } from "modules/logs/logs.service";
 
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 
 import { ContractName } from "common/constants/contract";
@@ -22,6 +22,7 @@ export class JobSyncHolderService {
     private readonly cacheService: CacheService,
     private readonly contractService: ContractsService,
     private readonly holdersService: HoldersService,
+    @Inject(forwardRef(() => PricesService))
     private readonly pricesService: PricesService,
   ) {}
 
