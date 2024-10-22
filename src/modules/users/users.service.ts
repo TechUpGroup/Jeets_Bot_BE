@@ -146,7 +146,7 @@ export class UsersService {
     return this.usersModel.updateOne({ _id: new Types.ObjectId(id) }, { $inc: { balance: amount } });
   }
 
-  bulkBalance(bulkUpdate: any[]) {
+  bulkWrite(bulkUpdate: any[]) {
     return this.usersModel.bulkWrite(bulkUpdate);
   }
 

@@ -35,7 +35,7 @@ export class CreateNewCampaignDto {
   @ApiProperty()
   @IsArray()
   @ToArray()
-  detail: Details[];
+  details: Details[];
 
   @ApiProperty({
     default: 0

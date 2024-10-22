@@ -1,5 +1,5 @@
 import { Options } from "common/config/mongoose.config";
-import { Document } from "mongoose";
+import { Document, SchemaTypes, Types } from "mongoose";
 
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { CAMPAIGN_TYPE } from "common/enums/common";
@@ -14,8 +14,8 @@ export class Details {
   @Prop({ required: true })
   mint: string;
 
-  @Prop({ required: true })
-  amount: number;
+  @Prop({ required: true, type: SchemaTypes.Decimal128, default: 0, min: 0  })
+  amount: Types.Decimal128;
 }
 export const DetailsSchema = SchemaFactory.createForClass(Details);
 
@@ -31,16 +31,19 @@ export class Campaigns {
   type: CAMPAIGN_TYPE;
 
   @Prop({ required: false, type: [DetailsSchema], default: [] })
-  detail: Details[];
+  details: Details[];
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   start_time: number;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   end_time: number;
 
   @Prop({ required: true })
   score: number;
+
+  @Prop({ required: true, default: true })
+  status: boolean;
 }
 
 export type CampaignsDocument = Campaigns & Document;

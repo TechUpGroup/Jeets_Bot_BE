@@ -8,10 +8,10 @@ import { ContractName } from "common/constants/contract";
 import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
 import { HoldersService } from "modules/holders/holders.service";
-import { diffDay, onDay } from "common/utils";
 import axios from "axios";
 import { PricesService } from "modules/_shared/services/price.service";
 import { CacheService } from "modules/_shared/services/cache.service";
+import { CampaignsService } from "modules/campaigns/campaigns.service";
 
 export const KEY_PRICE_TOKEN = "all_price_token";
 
@@ -24,7 +24,9 @@ export class JobSyncHolderService {
     private readonly holdersService: HoldersService,
     @Inject(forwardRef(() => PricesService))
     private readonly pricesService: PricesService,
-  ) {}
+  ) {
+    void this.startPriceToken();
+  }
 
   private isRunning = {};
   @Cron(CronExpression.EVERY_30_MINUTES)
@@ -59,7 +61,7 @@ export class JobSyncHolderService {
     this.isRunningPriceToken = true;
     const tokenAddresses = contracts.map(a => a.contract_address);
     try {
-      const infos = await this.getInfoTokensOnDexscreener(tokenAddresses, allPrice["SOL"]);
+      await this.getInfoTokensOnDexscreener(tokenAddresses, allPrice["SOL"]);
     } catch (err) {
       console.log(err);
       this.logsService.createLog("startPriceToken -> start: ", err);
@@ -103,14 +105,7 @@ export class JobSyncHolderService {
   private async processHolder(network: Network, mint: string, holders: any[], totalSupply: string) {
     const timestamp = new Date();
     const bulkUpdate: any[] = [];
-    const holdersSaved = await this.holdersService.holders(network, mint);
     for (const holder of holders) {
-      const found = holdersSaved.find((a) => a.owner === holder.owner);
-      const inc = found
-        ? onDay(timestamp, new Date(found.last_updated))
-          ? 0
-          : diffDay(timestamp, new Date(found.last_updated))
-        : 1;
       bulkUpdate.push({
         updateOne: {
           filter: {
@@ -123,9 +118,6 @@ export class JobSyncHolderService {
             owner: holder.owner,
             last_updated: timestamp.getTime(),
             amount: holder.amount,
-            ...(BigNumber(holder.amount).gte(BigNumber(totalSupply).multipliedBy(0.001).toFixed())
-              ? { $inc: { day_streak_holder: inc } }
-              : { $set: { day_streak_holder: 0 } }),
           },
           upsert: true,
         },
@@ -143,7 +135,7 @@ export class JobSyncHolderService {
         for (const address of addresses) {
           const found = res.data.pairs.find((a) => a.baseToken.address === address);
           if (found) {
-            infos[address] = BigNumber(found.priceUsd).dividedBy(priceSOL).toFixed(0);
+            infos[address] = BigNumber(found.priceUsd).dividedBy(priceSOL).toFixed();
           }
         }
       }

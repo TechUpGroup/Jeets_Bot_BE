@@ -17,11 +17,8 @@ export class Holders {
   @Prop({ required: true, index: true })
   owner: string;
 
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   last_updated: number;
-
-  @Prop({ required: true, index: true, default: 0 })
-  day_streak_holder: number;
 
   @Prop({ required: true, type: SchemaTypes.Decimal128, default: 0, min: 0  })
   amount: Types.Decimal128;

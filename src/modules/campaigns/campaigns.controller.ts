@@ -5,6 +5,7 @@ import { Auth } from "common/decorators/http.decorators";
 import { User } from "common/decorators/user.decorator";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import { CreateNewCampaignDto } from "./dto/campaigns.dto";
+import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 
 @ApiTags("Campaigns")
 @Controller("campaigns")
@@ -13,10 +14,17 @@ export class CampaignsController {
 
   @Auth()
   @Get("histories")
-  getCampaignHistories(@User() user: UsersDocument) {
-    return this.campaignsService.getCampaignHistories(user);
+  getCampaignHistories(@User() user: UsersDocument, query: PaginationDtoAndSortDto) {
+    return this.campaignsService.getCampaignHistories(user, query);
   }
 
+  @Auth()
+  @Get("list")
+  getListCampaigns(query: PaginationDtoAndSortDto) {
+    return this.campaignsService.getListCampaigns(query);
+  }
+
+  @Auth()
   @Post("create-new-campaign")
   createNewCampaign(@Headers('auth') auth: string, @Body() body: CreateNewCampaignDto) {
     return this.campaignsService.createNewCampaign(auth, body);
