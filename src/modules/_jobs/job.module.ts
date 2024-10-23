@@ -5,7 +5,7 @@ import { SyncEventHolderModule } from "./sync-holder/solana/sync-event.module";
 
 @Module({
   imports: [
-    SyncEventModule, 
+    // SyncEventModule, 
     SyncEventHolderModule
   ],
 })
