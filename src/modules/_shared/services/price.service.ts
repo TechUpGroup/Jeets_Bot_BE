@@ -25,8 +25,7 @@ export class PricesService {
     try {
       this.isRunning = true;
       await this.getAllPrice(false);
-    } catch (e) {
-      console.error(e);
+    } catch {
     } finally {
       this.isRunning = false;
     }
@@ -57,10 +56,14 @@ export class PricesService {
   }
 
   private async getPrice(ids: string) {
-    const res = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-    if (res) {
-      return res.data;
+    try {
+      const res = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+      if (res) {
+        return res.data;
+      }
+      return
+    } catch {
+      return;
     }
-    return;
   }
 }

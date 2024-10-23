@@ -8,6 +8,7 @@ import { USER_CAMPAIGNS_MODEL, UserCampaignsSchema } from "./schemas/user-campai
 import { UsersModule } from "modules/users/users.module";
 import { MissionsModule } from "modules/missions/missions.module";
 import { HoldersModule } from "modules/holders/holders.module";
+import { ContractsModule } from "modules/contracts/contracts.module";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { HoldersModule } from "modules/holders/holders.module";
     MongooseModule.forFeature([{ name: USER_CAMPAIGNS_MODEL, schema: UserCampaignsSchema }]),
     forwardRef(() => UsersModule),
     forwardRef(() => MissionsModule),
+    forwardRef(() => ContractsModule),
     HoldersModule,
   ],
   providers: [CampaignsService],

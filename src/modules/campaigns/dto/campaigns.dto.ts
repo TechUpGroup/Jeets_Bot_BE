@@ -1,7 +1,7 @@
-import { IsArray, IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsEnum, IsNumber, IsString } from "class-validator";
 
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { ToArray, ToBoolean } from "common/decorators/transforms.decorator";
+import { ApiProperty } from "@nestjs/swagger";
+import { ToArray } from "common/decorators/transforms.decorator";
 import { CAMPAIGN_TYPE } from "common/enums/common";
 
 export class Details {
@@ -14,8 +14,16 @@ export class Details {
   mint: string;
 
   @ApiProperty()
+  @IsString()
+  amount: string;
+
+  @ApiProperty()
   @IsNumber()
-  amount: number;
+  decimal: number;
+
+  @ApiProperty()
+  @IsString()
+  totalSupply: string;
 }
 
 export class CreateNewCampaignDto {

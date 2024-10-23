@@ -15,6 +15,8 @@ import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
 import { PricesService } from "modules/_shared/services/price.service";
 import { UsersService } from "modules/users/users.service";
+import { ContractsService } from "modules/contracts/contracts.service";
+import { ContractName } from "common/constants/contract";
 
 @Injectable()
 export class CampaignsService {
@@ -23,6 +25,7 @@ export class CampaignsService {
     private readonly campaignsModel: PaginateModel<CampaignsDocument>,
     @InjectModel(USER_CAMPAIGNS_MODEL)
     private readonly userCampaignsModel: PaginateModel<UserCampaignsDocument>,
+    private readonly contractService: ContractsService,
     private readonly holdersService: HoldersService,
     private readonly pricesService: PricesService,
     private readonly usersService: UsersService,
@@ -46,17 +49,17 @@ export class CampaignsService {
           score: 1,
           details: {
             $map: {
-              input: '$details',
-              as: 'detail',
+              input: "$details",
+              as: "detail",
               in: {
-                mint: '$$detail.mint',
-                synbol: '$$detail.synbol',
-                amount: { $toString: '$$detail.amount' }
-              }
-            }
-          }
-        }
-      }
+                mint: "$$detail.mint",
+                synbol: "$$detail.synbol",
+                amount: { $toString: "$$detail.amount" },
+              },
+            },
+          },
+        },
+      },
     ]);
     return this.campaignsModel.aggregatePaginate(aggregate, { limit, page });
   }
@@ -72,6 +75,7 @@ export class CampaignsService {
         ...body,
         cid: currentCID,
       };
+      await this.contractService.createContracts(body.details);
       return this.campaignsModel.create(data);
     } catch (e) {
       throw new BadRequestException(e);
@@ -109,18 +113,18 @@ export class CampaignsService {
                 score: 1,
                 details: {
                   $map: {
-                    input: '$details',
-                    as: 'detail',
+                    input: "$details",
+                    as: "detail",
                     in: {
-                      mint: '$$detail.mint',
-                      synbol: '$$detail.synbol',
-                      amount: { $toString: '$$detail.amount' }
-                    }
-                  }
-                }
-              }
-            }
-          ]
+                      mint: "$$detail.mint",
+                      synbol: "$$detail.synbol",
+                      amount: { $toString: "$$detail.amount" },
+                    },
+                  },
+                },
+              },
+            },
+          ],
         },
       },
       {
@@ -128,9 +132,37 @@ export class CampaignsService {
           path: "$campaign",
           preserveNullAndEmptyArrays: true,
         },
-      }
+      },
+      {
+        $project: {
+          campaign: 1,
+          address: 1,
+          timestamp: 1,
+          score: 1,
+          start_holders: {
+            $map: {
+              input: "$start_holders",
+              as: "start_holder",
+              in: {
+                mint: "$$start_holder.mint",
+                amount: { $toString: "$$start_holder.amount" },
+              },
+            },
+          },
+          end_holders: {
+            $map: {
+              input: "$start_holders",
+              as: "start_holder",
+              in: {
+                mint: "$$start_holder.mint",
+                amount: { $toString: "$$start_holder.amount" },
+              },
+            },
+          },
+        },
+      },
     ]);
-    return this.campaignsModel.aggregatePaginate(aggregate, { limit, page });
+    return this.userCampaignsModel.aggregatePaginate(aggregate, { limit, page });
   }
 
   async getCampaignStartToDay() {
@@ -176,7 +208,7 @@ export class CampaignsService {
     const userHolders = await this.holdersService.userHolders(Network.solana, mints, addressParticipated);
     const userMintHolders: any = {};
     for (const userHolder of userHolders) {
-      if (userMintHolders[userHolder.owner]) {
+      if (!userMintHolders[userHolder.owner]) {
         userMintHolders[userHolder.owner] = [];
       }
       userMintHolders[userHolder.owner].push(userHolder);
@@ -200,7 +232,7 @@ export class CampaignsService {
     const userHolders = await this.holdersService.userHolderParticipateds(Network.solana, mints, addressParticipated);
     const userMintHolders: any = {};
     for (const userHolder of userHolders) {
-      if (userMintHolders[userHolder.owner]) {
+      if (!userMintHolders[userHolder.owner]) {
         userMintHolders[userHolder.owner] = [];
       }
       userMintHolders[userHolder.owner].push(userHolder);
@@ -225,13 +257,15 @@ export class CampaignsService {
           bulkCreate.push({
             address,
             cid: campaign.cid,
-            start_holders: holders,
+            start_holders: holders.map((a) => {
+              return { mint: a.mint, amount: a.amount };
+            }),
             status: true,
           });
         }
       }
     }
-    await Promise.all([bulkCreate.length ? this.userCampaignsModel.bulkWrite(bulkCreate) : undefined]);
+    await Promise.all([bulkCreate.length ? this.userCampaignsModel.insertMany(bulkCreate) : undefined]);
     this.isRunningStartCampaign = false;
   }
 
@@ -240,17 +274,48 @@ export class CampaignsService {
   async syncEndCampaign() {
     if (this.isRunningEndCampaign) return;
     this.isRunningEndCampaign = true;
-    const [{ campaigns, userMintHolders, resParticipated }, allPriceTokens] = await Promise.all([
+    const [{ campaigns, userMintHolders, resParticipated }, allPriceTokens, tokens] = await Promise.all([
       this.getUserParticipantedCampaign(),
       this.pricesService.getAllPriceToken(),
+      this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana),
     ]);
+    if (!allPriceTokens || !Object.keys(allPriceTokens).length || !tokens.length) {
+      this.isRunningEndCampaign = false;
+      return;
+    }
     const bulkUpdate: any[] = [];
+    const bulkUpdateCampaign: any[] = [];
     const bulkUpdateScore: any[] = [];
     for (const campaign of campaigns) {
       for (const [address, items] of Object.entries(userMintHolders)) {
+        let minusScore = 0;
         const winners = (items as any[]).filter((item: any) => {
+          const found = resParticipated.find((a) => a.address === item.owner);
+          if (found) {
+            const holder = found.start_holders.find((a) => a.mint === item.mint);
+            if (holder) {
+              const token = tokens.find((a) => a.contract_address === holder.mint);
+              if (token) {
+                minusScore = +BigNumber(allPriceTokens[holder.mint])
+                  .multipliedBy(BigNumber(item.amount.toString()).minus(holder.amount.toString()))
+                  .dividedBy(Math.pow(10, token?.decimal || 6))
+                  .toFixed(0);
+                minusScore = minusScore < 0 ? minusScore : 0;
+              }
+            }
+          }
           const campaignHolder = campaign.details.find((a) => a.mint === item.mint);
           return campaignHolder && BigNumber(item.amount.toString()).gte(campaignHolder.amount.toString());
+        });
+        bulkUpdateCampaign.push({
+          updateOne: {
+            filter: {
+              cid: campaign.cid,
+            },
+            update: {
+              status: false,
+            },
+          },
         });
         if (winners.length === campaign.details.length) {
           bulkUpdate.push({
@@ -260,8 +325,10 @@ export class CampaignsService {
                 cid: campaign.cid,
               },
               update: {
-                end_holders: winners,
-                score: campaign.score,
+                end_holders: winners.map((a) => {
+                  return { mint: a.mint, amount: a.amount };
+                }),
+                score: campaign.score + minusScore > 0 ? campaign.score + minusScore : 0,
                 status: false,
               },
             },
@@ -272,44 +339,49 @@ export class CampaignsService {
                 address,
               },
               update: {
-                $inc: { score: campaign.score },
+                $inc: { score: campaign.score + minusScore > 0 ? campaign.score + minusScore : 0 },
               },
             },
           });
         } else {
-          (items as any[]).forEach((item: any) => {
-            const found = resParticipated.find((a) => a.address === item.owner);
-            if (found) {
-              const token = found.start_holders.find((a) => a.mint === item.mint);
-              if (token) {
-                const amoutnSOL = +BigNumber(allPriceTokens)
-                  .multipliedBy(BigNumber(item.amount.toString()).minus(token.amount.toString()))
-                  .toFixed(0);
-                bulkUpdate.push({
-                  updateOne: {
-                    filter: {
-                      address,
-                      cid: campaign.cid,
-                    },
-                    update: {
-                      end_holders: winners,
-                      score: amoutnSOL * -1,
-                      status: false,
-                    },
-                  },
-                });
-                bulkUpdateScore.push({
-                  updateOne: {
-                    filter: {
-                      address,
-                    },
-                    update: {
-                      $inc: { score: amoutnSOL * -1 },
-                    },
-                  },
-                });
-              }
-            }
+          bulkUpdate.push({
+            updateOne: {
+              filter: {
+                address,
+                cid: campaign.cid,
+              },
+              update: {
+                end_holders: (items as any[])
+                  .filter((item) => campaign.details.map((a) => a.mint).includes(item.mint))
+                  .map((a) => {
+                    return { mint: a.mint, amount: a.amount };
+                  }),
+                score: minusScore,
+                status: false,
+              },
+            },
+          });
+          bulkUpdateScore.push({
+            updateOne: {
+              filter: {
+                address,
+                score: { $gte: minusScore * -1 },
+              },
+              update: {
+                $inc: { score: minusScore },
+              },
+            },
+          });
+          bulkUpdateScore.push({
+            updateOne: {
+              filter: {
+                address,
+                score: { $lt: minusScore * -1 },
+              },
+              update: {
+                score: 0,
+              },
+            },
           });
         }
       }
@@ -317,6 +389,7 @@ export class CampaignsService {
     await Promise.all([
       bulkUpdate.length ? this.userCampaignsModel.bulkWrite(bulkUpdate) : undefined,
       bulkUpdateScore.length ? this.usersService.bulkWrite(bulkUpdateScore) : undefined,
+      bulkUpdateCampaign.length ? this.campaignsModel.bulkWrite(bulkUpdateCampaign) : undefined,
     ]);
     this.isRunningEndCampaign = false;
   }

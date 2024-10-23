@@ -11,7 +11,6 @@ import { HoldersService } from "modules/holders/holders.service";
 import axios from "axios";
 import { PricesService } from "modules/_shared/services/price.service";
 import { CacheService } from "modules/_shared/services/cache.service";
-import { CampaignsService } from "modules/campaigns/campaigns.service";
 
 export const KEY_PRICE_TOKEN = "all_price_token";
 
@@ -35,12 +34,11 @@ export class JobSyncHolderService {
     if (!contracts.length) return;
     for (const contract of contracts) {
       const mint = contract.contract_address;
-      const totalSupply = contract.total_supply || "0";
       if (this.isRunning[mint]) continue;
       this.isRunning[mint] = true;
       try {
         const hodlers = await this.findHolders(mint);
-        await this.processHolder(contract.network, mint, hodlers, totalSupply);
+        await this.processHolder(contract.network, mint, hodlers);
       } catch (err) {
         console.log(err);
         this.logsService.createLog("JobSyncHolderService -> start: ", err);
@@ -53,14 +51,14 @@ export class JobSyncHolderService {
   private isRunningPriceToken = false;
   @Cron(CronExpression.EVERY_MINUTE, { name: "startPriceToken" })
   private async startPriceToken() {
-    const [contracts, allPrice] = await Promise.all([
-      this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana),
-      this.pricesService.getAllPrice(),
-    ]);
-    if (!contracts.length || this.isRunningPriceToken) return;
-    this.isRunningPriceToken = true;
-    const tokenAddresses = contracts.map(a => a.contract_address);
     try {
+      const [contracts, allPrice] = await Promise.all([
+        this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana),
+        this.pricesService.getAllPrice(),
+      ]);
+      if (!contracts.length || this.isRunningPriceToken) return;
+      this.isRunningPriceToken = true;
+      const tokenAddresses = contracts.map((a) => a.contract_address);
       await this.getInfoTokensOnDexscreener(tokenAddresses, allPrice["SOL"]);
     } catch (err) {
       console.log(err);
@@ -102,15 +100,36 @@ export class JobSyncHolderService {
     }
   }
 
-  private async processHolder(network: Network, mint: string, holders: any[], totalSupply: string) {
+  private async processHolder(network: Network, mint: string, holders: any[]) {
     const timestamp = new Date();
     const bulkUpdate: any[] = [];
+    const ownerHolders = holders.map(a => a.owner);
+    const holdersSaved = await this.holdersService.holders(network, mint);
+    for (const holder of holdersSaved) {
+      if (!ownerHolders.includes(holder.owner)) {
+        bulkUpdate.push({
+          updateOne: {
+            filter: {
+              network,
+              owner: holder.owner,
+              mint: holder.mint,
+            },
+            update: {
+              last_updated: timestamp.getTime(),
+              amount: "0",
+            },
+          },
+        });
+      }
+    }
+
     for (const holder of holders) {
       bulkUpdate.push({
         updateOne: {
           filter: {
             network,
             owner: holder.owner,
+            mint: holder.mint,
           },
           update: {
             network,

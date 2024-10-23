@@ -185,7 +185,8 @@ class Config {
     const tokens = [
       {
         mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
-        totalSupply: "1000000000000000"
+        totalSupply: "1000000000000000",
+        decimal: 6
       }
     ]
     return {

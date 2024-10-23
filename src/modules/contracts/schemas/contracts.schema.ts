@@ -18,6 +18,9 @@ export class Contracts {
   @Prop({ required: false })
   total_supply?: string;
 
+  @Prop({ required: false })
+  decimal?: number;
+
   @Prop({ required: true, enum: ContractName })
   name: string;
 
