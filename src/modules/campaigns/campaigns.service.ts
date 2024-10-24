@@ -55,7 +55,7 @@ export class CampaignsService {
               as: "detail",
               in: {
                 mint: "$$detail.mint",
-                synbol: "$$detail.symbol",
+                symbol: "$$detail.symbol",
                 decimal: "$$detail.decimal",
                 amount: { $toString: "$$detail.amount" },
               },
@@ -120,7 +120,7 @@ export class CampaignsService {
                     as: "detail",
                     in: {
                       mint: "$$detail.mint",
-                      synbol: "$$detail.symbol",
+                      symbol: "$$detail.symbol",
                       decimal: "$$detail.decimal",
                       amount: { $toString: "$$detail.amount" },
                     },
@@ -149,7 +149,7 @@ export class CampaignsService {
               as: "start_holder",
               in: {
                 mint: "$$start_holder.mint",
-                synbol: "$$start_holder.symbol",
+                symbol: "$$start_holder.symbol",
                 decimal: "$$start_holder.decimal",
                 amount: { $toString: "$$start_holder.amount" },
               },
@@ -161,7 +161,7 @@ export class CampaignsService {
               as: "end_holder",
               in: {
                 mint: "$$end_holder.mint",
-                synbol: "$$end_holder.symbol",
+                symbol: "$$end_holder.symbol",
                 decimal: "$$end_holder.decimal",
                 amount: { $toString: "$$end_holder.amount" },
               },
