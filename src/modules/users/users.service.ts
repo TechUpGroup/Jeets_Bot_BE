@@ -41,6 +41,10 @@ export class UsersService {
     return this.usersModel.create({ address, network });
   }
 
+  getAllUsers() {
+    return this.usersModel.find();
+  }
+
   async getUser(id: string) {
     const user = await this.usersModel.findById(id);
     if (!user) {

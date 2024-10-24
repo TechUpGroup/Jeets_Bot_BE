@@ -203,9 +203,14 @@ export class CampaignsService {
         }
       }
     }
-    const resParticipated = await this.userHasParticipated(cids);
+    const [resParticipated, allUsers] = await Promise.all([
+      this.userHasParticipated(cids),
+      this.usersService.getAllUsers()
+    ]);
     const addressParticipated = resParticipated.map((a) => a.address);
-    const userHolders = await this.holdersService.userHolders(Network.solana, mints, addressParticipated);
+    const allAddresses = allUsers.map((a) => a.address);
+    const allAvailableAddresses = allAddresses.filter((a) => !addressParticipated.includes(a));
+    const userHolders = await this.holdersService.userHolders(Network.solana, mints, allAvailableAddresses);
     const userMintHolders: any = {};
     for (const userHolder of userHolders) {
       if (!userMintHolders[userHolder.owner]) {

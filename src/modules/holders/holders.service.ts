@@ -25,11 +25,23 @@ export class HoldersService {
     return this.holdersModel.findOne({ network, mint, owner }, { amount: 1 });
   }
 
-  userHolders(network: Network, mints: string[], addressParticipated: string[]) {
-    return this.holdersModel.find({ network, mint: { $in: mints }, owner: { $nin: addressParticipated } }, { mint: 1, owner: 1, amount: 1 });
+  userHolders(network: Network, mints: string[], allAvailableAddresses: string[]) {
+    return this.holdersModel.find(
+      {
+        $and: [
+          { network },
+          { mint: { $in: mints } },
+          { owner: { $in: allAvailableAddresses } },
+        ],
+      },
+      { mint: 1, owner: 1, amount: 1 },
+    );
   }
 
   userHolderParticipateds(network: Network, mints: string[], addressParticipated: string[]) {
-    return this.holdersModel.find({ network, mint: { $in: mints }, owner: { $in: addressParticipated } }, { mint: 1, owner: 1, amount: 1 });
+    return this.holdersModel.find(
+      { network, mint: { $in: mints }, owner: { $in: addressParticipated } },
+      { mint: 1, owner: 1, amount: 1 },
+    );
   }
 }
