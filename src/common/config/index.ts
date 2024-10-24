@@ -94,6 +94,10 @@ class Config {
     return this.getString("authAdmin");
   }
 
+  get helius_url() {
+    return this.getString("helius_url");
+  }
+
   get fallbackLanguage(): string {
     return this.getString("i18n.fallback_language");
   }
@@ -184,7 +188,7 @@ class Config {
     ]
     const tokens = [
       {
-        mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
+        mint: "DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o",
         totalSupply: "1000000000000000",
         decimal: 6
       }

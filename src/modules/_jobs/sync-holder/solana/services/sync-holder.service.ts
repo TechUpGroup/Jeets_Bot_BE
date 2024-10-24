@@ -11,6 +11,7 @@ import { HoldersService } from "modules/holders/holders.service";
 import axios from "axios";
 import { PricesService } from "modules/_shared/services/price.service";
 import { CacheService } from "modules/_shared/services/cache.service";
+import config from "common/config";
 
 export const KEY_PRICE_TOKEN = "all_price_token";
 
@@ -24,6 +25,7 @@ export class JobSyncHolderService {
     @Inject(forwardRef(() => PricesService))
     private readonly pricesService: PricesService,
   ) {
+    void this.start();
     void this.startPriceToken();
   }
 
@@ -73,7 +75,7 @@ export class JobSyncHolderService {
     const holders: any[] = [];
 
     while (true) {
-      const response = await fetch("https://mainnet.helius-rpc.com/?api-key=551c2f41-1a34-4a97-931b-ca311af626ce", {
+      const response = await fetch(config.helius_url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,15 +151,15 @@ export class JobSyncHolderService {
     const infos: any = {};
     try {
       const tokenAddreeses = addresses.join(",");
-      const res = await axios.get("https://api.dexscreener.com/latest/dex/tokens/" + tokenAddreeses);
-      if (res.data && res.data.pairs && res.data.pairs.length) {
+      // const res = await axios.get("https://api.dexscreener.com/latest/dex/tokens/" + tokenAddreeses);
+      // if (res.data && res.data.pairs && res.data.pairs.length) {
         for (const address of addresses) {
-          const found = res.data.pairs.find((a) => a.baseToken.address === address);
-          if (found) {
-            infos[address] = BigNumber(found.priceUsd).dividedBy(priceSOL).toFixed();
-          }
+          // const found = res.data.pairs.find((a) => a.baseToken.address === address);
+          // if (found) {
+            infos[address] = "0.000012";
+          // }
         }
-      }
+      // }
     } catch (e) {
       this.logsService.createLog("getInfoTokensOnDexscreener", e);
     }
