@@ -151,11 +151,11 @@ export class CampaignsService {
           },
           end_holders: {
             $map: {
-              input: "$start_holders",
-              as: "start_holder",
+              input: "$end_holders",
+              as: "end_holder",
               in: {
-                mint: "$$start_holder.mint",
-                amount: { $toString: "$$start_holder.amount" },
+                mint: "$$end_holder.mint",
+                amount: { $toString: "$$end_holder.amount" },
               },
             },
           },
