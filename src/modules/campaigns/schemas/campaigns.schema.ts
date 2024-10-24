@@ -9,7 +9,10 @@ export const CAMPAIGNS_MODEL = "campaigns";
 @Schema({ _id: false, timestamps: false })
 export class Details {
   @Prop({ required: true })
-  synbol: string;
+  symbol: string;
+
+  @Prop({ required: true })
+  decimal: number;
 
   @Prop({ required: true })
   mint: string;

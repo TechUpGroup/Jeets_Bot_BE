@@ -55,7 +55,8 @@ export class CampaignsService {
               as: "detail",
               in: {
                 mint: "$$detail.mint",
-                synbol: "$$detail.synbol",
+                synbol: "$$detail.symbol",
+                decimal: "$$detail.decimal",
                 amount: { $toString: "$$detail.amount" },
               },
             },
@@ -119,7 +120,8 @@ export class CampaignsService {
                     as: "detail",
                     in: {
                       mint: "$$detail.mint",
-                      synbol: "$$detail.synbol",
+                      synbol: "$$detail.symbol",
+                      decimal: "$$detail.decimal",
                       amount: { $toString: "$$detail.amount" },
                     },
                   },
@@ -147,6 +149,8 @@ export class CampaignsService {
               as: "start_holder",
               in: {
                 mint: "$$start_holder.mint",
+                synbol: "$$start_holder.symbol",
+                decimal: "$$start_holder.decimal",
                 amount: { $toString: "$$start_holder.amount" },
               },
             },
@@ -157,6 +161,8 @@ export class CampaignsService {
               as: "end_holder",
               in: {
                 mint: "$$end_holder.mint",
+                synbol: "$$end_holder.symbol",
+                decimal: "$$end_holder.decimal",
                 amount: { $toString: "$$end_holder.amount" },
               },
             },
@@ -265,7 +271,8 @@ export class CampaignsService {
             address,
             cid: campaign.cid,
             start_holders: holders.map((a) => {
-              return { mint: a.mint, amount: a.amount };
+              const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
+              return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
             }),
             status: true,
           });
@@ -334,7 +341,8 @@ export class CampaignsService {
               },
               update: {
                 end_holders: winners.map((a) => {
-                  return { mint: a.mint, amount: a.amount };
+                  const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
+                  return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
                 }),
                 score: campaign.score + minusScore > 0 ? campaign.score + minusScore : 0,
                 status: false,
@@ -362,7 +370,8 @@ export class CampaignsService {
                 end_holders: (items as any[])
                   .filter((item) => campaign.details.map((a) => a.mint).includes(item.mint))
                   .map((a) => {
-                    return { mint: a.mint, amount: a.amount };
+                    const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
+                    return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
                   }),
                 score: minusScore,
                 status: false,

@@ -7,7 +7,7 @@ import { CAMPAIGN_TYPE } from "common/enums/common";
 export class Details {
   @ApiProperty()
   @IsString()
-  synbol: string;
+  symbol: string;
 
   @ApiProperty()
   @IsString()

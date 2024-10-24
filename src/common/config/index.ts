@@ -67,7 +67,7 @@ class Config {
       store: redisStore,
       url: this.getString("redis.uri"),
       prefix: `${this.getString("redis.prefix")}_${this.nodeEnv}_`,
-      ttl: 10,
+      ttl: 10 * 69 * 1000,
     } as any;
   }
 
