@@ -17,6 +17,7 @@ import { PricesService } from "modules/_shared/services/price.service";
 import { UsersService } from "modules/users/users.service";
 import { ContractsService } from "modules/contracts/contracts.service";
 import { ContractName } from "common/constants/contract";
+import { LogsService } from "modules/logs/logs.service";
 
 @Injectable()
 export class CampaignsService {
@@ -29,6 +30,7 @@ export class CampaignsService {
     private readonly holdersService: HoldersService,
     private readonly pricesService: PricesService,
     private readonly usersService: UsersService,
+    private readonly logsService: LogsService,
   ) {}
 
   async getListCampaigns(query: PaginationDtoAndSortDto) {
@@ -286,6 +288,7 @@ export class CampaignsService {
     ]);
     if (!allPriceTokens || !Object.keys(allPriceTokens).length || !tokens.length) {
       this.isRunningEndCampaign = false;
+      this.logsService.createLog("syncEndCampaign", JSON.stringify(allPriceTokens) + "__" + JSON.stringify(tokens))
       return;
     }
     const bulkUpdate: any[] = [];
