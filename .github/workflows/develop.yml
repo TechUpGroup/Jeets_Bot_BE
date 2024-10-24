@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "develop"
+      - "score-campaign"
 
 jobs:
   build-push-full:
@@ -79,6 +80,13 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
 
       - name: Deploy develop
+        if: github.ref == 'refs/heads/develop'
         run: ssh dev "cd /home/$SSH_USER/soljeets_be && ./deploy.sh"
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+
+      - name: Deploy score-campaign
+        if: github.ref == 'refs/heads/score-campaign'
+        run: ssh dev "cd /home/$SSH_USER/soljeets_campaign_be && ./deploy.sh"
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
