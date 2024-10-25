@@ -33,6 +33,16 @@ export class UsersService {
     return false;
   }
 
+  async isSocialTaken(data: any) {
+    const checkSocial = await this.usersModel.findOne({
+      ...data,
+    });
+    if (checkSocial) {
+      return true;
+    }
+    return false;
+  }
+
   async create(address: string, network: Network) {
     const isAddressTaken = await this.isAddressTaken(address);
     if (isAddressTaken) {
@@ -170,6 +180,10 @@ export class UsersService {
     // validate hash
     if (!telegramCheckAuth(userInfo)) {
       throw new BadRequestException("Hash not matched or expired");
+    }
+
+    if(await this.isSocialTaken({ telegram_uid: userInfo.id })) {
+      throw new BadRequestException("This telegram user already connected to other user.");
     }
 
     try {
