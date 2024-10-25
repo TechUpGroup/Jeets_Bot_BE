@@ -26,13 +26,13 @@ export class Users {
   @Prop({ required: true, index: true, unique: true, default: generateRandomCode })
   code: string;
 
-  @Prop({ required: false, sparse: true })
+  @Prop({ required: false, unique: true, sparse: true })
   telegram_uid: number;
 
   @Prop({ required: false })
   telegram_username: string;
 
-  @Prop({ required: false, sparse: true })
+  @Prop({ required: false, unique: true, sparse: true })
   twitter_uid: string;
 
   @Prop({ required: false })
