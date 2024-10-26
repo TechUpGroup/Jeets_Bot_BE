@@ -23,7 +23,6 @@ export class CampaignsController {
     return this.campaignsService.getListCampaigns(query);
   }
 
-  @Auth()
   @Post("create-new-campaign")
   createNewCampaign(@Headers('auth') auth: string, @Body() body: CreateNewCampaignDto) {
     return this.campaignsService.createNewCampaign(auth, body);
