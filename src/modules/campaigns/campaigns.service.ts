@@ -33,8 +33,7 @@ export class CampaignsService {
     private readonly usersService: UsersService,
     private readonly logsService: LogsService,
   ) {
-    void this.syncResetCampaign();
-    // void this.syncStartCampaign();
+    void this.syncStartCampaign();
   }
 
   saveUserCampagignHistories(items: UserCampaigns | UserCampaigns[]) {
