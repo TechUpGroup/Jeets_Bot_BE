@@ -190,6 +190,7 @@ class Config {
       {
         mint: "DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o",
         totalSupply: "1000000000000000",
+        symbol: "$MOON",
         decimal: 6
       }
     ]

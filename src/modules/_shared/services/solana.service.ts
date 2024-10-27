@@ -36,7 +36,8 @@ export interface SolanaEvents {
   sessionId?: number;
   amount?: number;
   is_buy?: boolean;
-  is_send?: boolean;
+  from?: string;
+  to?: string;
 }
 
 interface TransferResponse {
@@ -352,10 +353,9 @@ export class SolanasService {
     return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
   }
 
-  async getAllEventSwap(
+  async getAllEventTransferToken(
     network: Network,
     mintAddress: web3.PublicKey,
-    acceptAddress: string[],
     until?: string,
     limit = 10,
   ): Promise<TransferResponse> {
@@ -405,16 +405,12 @@ export class SolanasService {
         tx?.meta?.postTokenBalances &&
         tx?.meta?.preTokenBalances
       ) {
-        const postToken = tx?.meta?.postTokenBalances.find(
-          (a) => a.mint === mintAddress.toString() && a.owner && acceptAddress.includes(a.owner),
-        );
-        const preToken = tx?.meta?.preTokenBalances.find(
-          (a) => a.mint === mintAddress.toString() && a.owner && acceptAddress.includes(a.owner),
-        );
+        const postToken = tx?.meta?.postTokenBalances.find((a) => a.mint === mintAddress.toString());
+        const preToken = tx?.meta?.preTokenBalances.find((a) => a.mint === mintAddress.toString());
         if (postToken && preToken) {
           const postAmount = postToken?.uiTokenAmount?.uiAmount || 0;
           const preAmount = preToken?.uiTokenAmount?.uiAmount || 0;
-          if (preAmount != 0 && postAmount < preAmount)
+          if (preAmount !== 0 && postAmount !== 0)
             allEvents.push({
               event: EVENT_TOKEN.SWAP,
               transactionHash: tx.transaction.signatures[0],
@@ -441,29 +437,15 @@ export class SolanasService {
               this.getTokenAccountOwner(info?.destination),
             ]);
 
-            if (acceptAddress.includes(from)) {
-              allEvents.push({
-                event: EVENT_TOKEN.TRANSFER,
-                transactionHash: tx.transaction.signatures[0],
-                logIndex: 1,
-                blockTime: tx.blockTime || 0,
-                amount: info?.tokenAmount?.amount || 0,
-                is_send: true,
-                account: from,
-              });
-            }
-            if (acceptAddress.includes(to)) {
-              allEvents.push({
-                event: EVENT_TOKEN.TRANSFER,
-                transactionHash: tx.transaction.signatures[0],
-                logIndex: 1,
-                blockTime: tx.blockTime || 0,
-                amount: info?.tokenAmount?.amount || 0,
-                is_send: false,
-                account: to,
-              });
-            }
-
+            allEvents.push({
+              event: EVENT_TOKEN.TRANSFER,
+              transactionHash: tx.transaction.signatures[0],
+              logIndex: 1,
+              blockTime: tx.blockTime || 0,
+              amount: info?.tokenAmount?.amount || 0,
+              from,
+              to,
+            });
           }
         }
       }

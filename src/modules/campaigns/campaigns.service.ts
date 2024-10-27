@@ -33,7 +33,7 @@ export class CampaignsService {
     private readonly usersService: UsersService,
     private readonly logsService: LogsService,
   ) {
-    void this.syncResetCampaign()
+    void this.syncStartCampaign()
   }
 
   saveUserCampagignHistories(items: UserCampaigns | UserCampaigns[]) {
@@ -225,10 +225,8 @@ export class CampaignsService {
       this.userHasParticipated(cids),
       this.usersService.getAllUsers()
     ]);
-    const addressParticipated = resParticipated.map((a) => a.address);
     const allAddresses = allUsers.map((a) => a.address);
-    const allAvailableAddresses = allAddresses.filter((a) => !addressParticipated.includes(a));
-    const userHolders = await this.holdersService.userHolders(Network.solana, mints, allAvailableAddresses);
+    const userHolders = await this.holdersService.userHolders(Network.solana, mints, allAddresses);
     const userMintHolders: any = {};
     for (const userHolder of userHolders) {
       if (!userMintHolders[userHolder.owner]) {
@@ -236,7 +234,7 @@ export class CampaignsService {
       }
       userMintHolders[userHolder.owner].push(userHolder);
     }
-    return { campaigns, userMintHolders };
+    return { campaigns, userMintHolders, resParticipated };
   }
 
   async getUserParticipantedCampaign() {
@@ -268,26 +266,28 @@ export class CampaignsService {
   async syncStartCampaign() {
     if (this.isRunningStartCampaign) return;
     this.isRunningStartCampaign = true;
-    const { campaigns, userMintHolders } = await this.getUserAvailableParticipantCampaign();
+    const { campaigns, userMintHolders, resParticipated } = await this.getUserAvailableParticipantCampaign();
     const bulkCreate: any[] = [];
     for (const campaign of campaigns) {
       for (const [address, items] of Object.entries(userMintHolders)) {
-        const holders = (items as any[]).filter((item: any) => {
-          const campaignHolder = campaign.details.find((a) => a.mint === item.mint);
-          return campaignHolder && BigNumber(item.amount.toString()).gte(campaignHolder.amount.toString());
-        });
-        if (holders.length === campaign.details.length) {
-          bulkCreate.push({
-            address,
-            cid: campaign.cid,
-            start_holders: holders.map((a) => {
-              const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
-              return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
-            }),
-            status: true,
+          const check = resParticipated.find(a => a.cid === campaign.cid && a.address === address);
+          const holders = (items as any[]).filter((item: any) => {
+            const campaignHolder = campaign.details.find((a) => a.mint === item.mint);
+            return campaignHolder && BigNumber(item.amount.toString()).gte(campaignHolder.amount.toString());
           });
+          if (!check && holders.length === campaign.details.length) {
+            bulkCreate.push({
+              address,
+              cid: campaign.cid,
+              start_holders: holders.map((a) => {
+                const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
+                return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
+              }),
+              status: true,
+            });
+          }
         }
-      }
+      
     }
     await Promise.all([bulkCreate.length ? this.userCampaignsModel.insertMany(bulkCreate) : undefined]);
     this.isRunningStartCampaign = false;
@@ -366,20 +366,23 @@ export class CampaignsService {
   }
 
   // @Cron("0 0 * * 1", { name: "syncResetCampaign" })
-  @Cron(CronExpression.EVERY_HOUR, { name: "syncResetCampaign" })
+  @Cron(CronExpression.EVERY_6_HOURS, { name: "syncResetCampaign" })
   async syncResetCampaign() {
     const timestamp = Date.now();
-    const campaigns = await this.campaignsModel.find();
+    const campaigns = await this.campaignsModel.find({ is_origin: true }).sort({ cid: 1 });
     const bulkCreate: any[] = [];
-    for (const campaign of campaigns) {
+    campaigns.forEach((campaign, i)  => {
       bulkCreate.push({
-        ...campaign,
-        _id: undefined,
+        cid: campaigns.length + i + 1,
+        name: campaign.name,
+        type: campaign.type,
+        details: campaign.details,
+        score: campaign.score,
         start_time: timestamp,
-        end_time: timestamp + TIMESTAM_HOUR,
+        end_time: timestamp + 6 * TIMESTAM_HOUR,
         status: true
       })
-    }
+    });
     await Promise.all([
       bulkCreate.length ? this.campaignsModel.insertMany(bulkCreate) : undefined,
     ]);

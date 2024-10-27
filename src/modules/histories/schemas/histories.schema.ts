@@ -117,6 +117,12 @@ export class TokenHistories {
 
   @Prop({ required: true, index: true })
   timestamp: number;
+
+  @Prop({ required: false })
+  from: string;
+
+  @Prop({ required: false })
+  to: string;
 }
 export type TokenHistoriesDocument = TokenHistories & Document;
 export const TokenHistoriesSchema = SchemaFactory.createForClass(TokenHistories);

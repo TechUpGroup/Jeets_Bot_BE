@@ -11,7 +11,6 @@ export interface IEventParams {
 export interface ContractParams {
   contract: ContractsDocument;
   acceptEvents: string[];
-  acceptAddress?: string[];
   eventParser?: anchor.EventParser;
   callback: HandleFunc;
 }

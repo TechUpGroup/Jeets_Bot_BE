@@ -34,16 +34,18 @@ export class UserCampaigns {
   @Prop({ required: false, enum: EVENT_TOKEN })
   event: EVENT_TOKEN;
 
-  @Prop({ required: false, default: 0 })
-  amount: number;
+  @Prop({ required: true, type: [DetailsSchema], default: [] })
+  detail: Details[];
 
   @Prop({ required: false, default: true })
   is_buy: boolean;
 
   @Prop({ required: false, default: true })
   is_send: boolean;
+
+  @Prop({ required: false })
+  tx: string;
 }
 
 export type UserCampaignsDocument = UserCampaigns & Document;
 export const UserCampaignsSchema = SchemaFactory.createForClass(UserCampaigns);
-UserCampaignsSchema.index({ address: 1, cid: 1 }, { unique: true });

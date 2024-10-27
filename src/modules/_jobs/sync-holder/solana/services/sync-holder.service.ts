@@ -26,7 +26,7 @@ export class JobSyncHolderService {
     private readonly pricesService: PricesService,
   ) {
     void this.start();
-    void this.startPriceToken();
+    // void this.startPriceToken();
   }
 
   private isRunning = {};
@@ -51,7 +51,7 @@ export class JobSyncHolderService {
   }
 
   private isRunningPriceToken = false;
-  @Cron(CronExpression.EVERY_MINUTE, { name: "startPriceToken" })
+  // @Cron(CronExpression.EVERY_MINUTE, { name: "startPriceToken" })
   private async startPriceToken() {
     try {
       const [contracts, allPrice] = await Promise.all([

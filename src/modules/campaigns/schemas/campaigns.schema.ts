@@ -47,6 +47,9 @@ export class Campaigns {
 
   @Prop({ required: true, default: true })
   status: boolean;
+
+  @Prop({ required: true, default: true })
+  is_origin: boolean;
 }
 
 export type CampaignsDocument = Campaigns & Document;

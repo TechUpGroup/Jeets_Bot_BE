@@ -76,17 +76,19 @@ export class ContractsService {
         tx_synced?: string;
         total_supply?: string;
         decimal?: number;
+        symbol?: string;
         name: ContractName;
         network: Network;
       }[] = [];
 
-      for (const { mint, totalSupply, decimal } of datas) {
+      for (const { mint, totalSupply, decimal, symbol } of datas) {
         contractCreate.push({
           contract_address: mint,
           tx_synced: undefined,
           name: ContractName.TOKEN,
           total_supply: totalSupply,
           decimal,
+          symbol,
           network: Network.solana,
         });
       }
@@ -108,6 +110,7 @@ export class ContractsService {
         tx_synced?: string;
         total_supply?: string;
         decimal?: number;
+        symbol?: string;
         name: ContractName;
         network: Network;
       }[] = [];
@@ -131,13 +134,14 @@ export class ContractsService {
         }
       }
       for (const network of allNetworks) {
-        for (const { mint, totalSupply, decimal } of config.getContract().tokens) {
+        for (const { mint, totalSupply, decimal, symbol } of config.getContract().tokens) {
           contractCreate.push({
             contract_address: mint,
             tx_synced: undefined,
             name: ContractName.TOKEN,
             total_supply: totalSupply,
             decimal,
+            symbol,
             network,
           });
         }

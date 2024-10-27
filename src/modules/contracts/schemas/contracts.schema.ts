@@ -21,6 +21,9 @@ export class Contracts {
   @Prop({ required: false })
   decimal?: number;
 
+  @Prop({ required: false })
+  symbol?: string;
+
   @Prop({ required: true, enum: ContractName })
   name: string;
 
