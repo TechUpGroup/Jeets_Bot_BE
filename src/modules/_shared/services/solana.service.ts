@@ -7,9 +7,8 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { AnchorProvider, BN, Wallet, web3 } from "@project-serum/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
-import { EVENT, EVENT_VOTING } from "common/constants/event";
+import { EVENT, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
 import { common, votingIDL } from "common/idl/pool";
-import { Cron, CronExpression } from "@nestjs/schedule";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
 import { ScJeetsSol, Voting } from "common/idl/jeets";
@@ -35,20 +34,13 @@ export interface SolanaEvents {
   account?: string;
   uid?: number;
   sessionId?: number;
-}
-
-export interface SolanaTransferEvents {
-  event: any;
-  transactionHash: string;
-  logIndex: number;
-  blockTime: number;
-  amount: string;
-  from: string;
-  to: string;
+  amount?: number;
+  is_buy?: boolean;
+  is_send?: boolean;
 }
 
 interface TransferResponse {
-  solanaEvents: SolanaEvents[] | SolanaTransferEvents[];
+  solanaEvents: SolanaEvents[];
   signatureLatest?: string;
 }
 
@@ -71,15 +63,9 @@ export class SolanasService {
     for (const network of allNetworks) {
       const connection: web3.Connection = new web3.Connection(config.listRPC[0], "recent");
       const connectionConfirmed: web3.Connection = new web3.Connection(config.listRPC[1], "confirmed");
-      const connectionVoting: web3.Connection = new web3.Connection(
-        config.listRPC[2],
-        "recent",
-      );
+      const connectionVoting: web3.Connection = new web3.Connection(config.listRPC[2], "recent");
 
-      const connectionConfirmedVoting: web3.Connection = new web3.Connection(
-        config.listRPC[2],
-        "confirmed",
-      );
+      const connectionConfirmedVoting: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
 
       const signerTypes = new Map<SignerType, web3.Keypair>();
       const { operator, authority } = config.getBlockchainPrivateKey(network);
@@ -363,6 +349,125 @@ export class SolanasService {
       }
     }
 
+    return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
+  }
+
+  async getAllEventSwap(
+    network: Network,
+    mintAddress: web3.PublicKey,
+    acceptAddress: string[],
+    until?: string,
+    limit = 10,
+  ): Promise<TransferResponse> {
+    const allEvents: SolanaEvents[] = [];
+    let before;
+    const txs: any[] = [];
+    while (true) {
+      const tmpTxs = await this.getConnectionConfirmed(network).getSignaturesForAddress(
+        mintAddress,
+        {
+          before,
+          until,
+          limit,
+        },
+        "confirmed",
+      );
+      if (!tmpTxs.length || tmpTxs[tmpTxs.length - 1].signature === until) {
+        break;
+      }
+      before = tmpTxs[tmpTxs.length - 1].signature;
+      txs.push(...tmpTxs);
+    }
+    if (!txs.length) return { signatureLatest: undefined, solanaEvents: [] };
+    const txSuccess = txs
+      .reverse()
+      .filter((tx) => tx.err === null)
+      .map((tx) => tx.signature);
+    const round = Math.ceil(txSuccess.length / limit);
+    const transactions: any[] = [];
+    for (let i = 0; i < round; i++) {
+      const start = i * limit;
+      const end = start + limit > txSuccess.length ? txSuccess.length : start + limit;
+      const tmpTransactions = await this.getConnectionConfirmed(network).getParsedTransactions(
+        txSuccess.slice(start, end),
+        {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        },
+      );
+      transactions.push(...tmpTransactions);
+    }
+
+    for (const tx of transactions) {
+      if (
+        tx?.meta?.logMessages &&
+        (tx?.meta?.logMessages.join(",").match("ray_log") || tx?.meta?.logMessages.join(",").match("Swap")) &&
+        tx?.meta?.postTokenBalances &&
+        tx?.meta?.preTokenBalances
+      ) {
+        const postToken = tx?.meta?.postTokenBalances.find(
+          (a) => a.mint === mintAddress.toString() && a.owner && acceptAddress.includes(a.owner),
+        );
+        const preToken = tx?.meta?.preTokenBalances.find(
+          (a) => a.mint === mintAddress.toString() && a.owner && acceptAddress.includes(a.owner),
+        );
+        if (postToken && preToken) {
+          const postAmount = postToken?.uiTokenAmount?.uiAmount || 0;
+          const preAmount = preToken?.uiTokenAmount?.uiAmount || 0;
+          if (preAmount != 0 && postAmount < preAmount)
+            allEvents.push({
+              event: EVENT_TOKEN.SWAP,
+              transactionHash: tx.transaction.signatures[0],
+              logIndex: 1,
+              blockTime: tx.blockTime || 0,
+              amount: postAmount > preAmount ? postAmount - preAmount : preAmount - postAmount,
+              account: postToken?.owner || "",
+              is_buy: postAmount > preAmount ? true : false,
+            });
+        }
+      }
+
+      if (tx && tx?.transaction && tx?.transaction?.message?.instructions) {
+        for (const instruction of tx?.transaction?.message?.instructions as any[]) {
+          if (
+            instruction?.program === "spl-token" &&
+            instruction?.parsed &&
+            instruction?.parsed?.type === "transferChecked" &&
+            instruction?.parsed?.info?.mint === mintAddress.toString()
+          ) {
+            const { info } = instruction.parsed;
+            const [from, to] = await Promise.all([
+              this.getTokenAccountOwner(info?.source),
+              this.getTokenAccountOwner(info?.destination),
+            ]);
+
+            if (acceptAddress.includes(from)) {
+              allEvents.push({
+                event: EVENT_TOKEN.TRANSFER,
+                transactionHash: tx.transaction.signatures[0],
+                logIndex: 1,
+                blockTime: tx.blockTime || 0,
+                amount: info?.tokenAmount?.amount || 0,
+                is_send: true,
+                account: from,
+              });
+            }
+            if (acceptAddress.includes(to)) {
+              allEvents.push({
+                event: EVENT_TOKEN.TRANSFER,
+                transactionHash: tx.transaction.signatures[0],
+                logIndex: 1,
+                blockTime: tx.blockTime || 0,
+                amount: info?.tokenAmount?.amount || 0,
+                is_send: false,
+                account: to,
+              });
+            }
+
+          }
+        }
+      }
+    }
     return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
   }
 }

@@ -3,6 +3,7 @@ import { Document, SchemaTypes, Types } from "mongoose";
 
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Details, DetailsSchema } from "./campaigns.schema";
+import { EVENT_TOKEN } from "common/constants/event";
 
 export const USER_CAMPAIGNS_MODEL = "user-campaigns";
 export const USER_CAMPAIGN_HISTORIES_MODEL = "user-campaign-histories";
@@ -29,6 +30,18 @@ export class UserCampaigns {
 
   @Prop({ required: true, index: true, default: true })
   status: boolean;
+
+  @Prop({ required: false, enum: EVENT_TOKEN })
+  event: EVENT_TOKEN;
+
+  @Prop({ required: false, default: 0 })
+  amount: number;
+
+  @Prop({ required: false, default: true })
+  is_buy: boolean;
+
+  @Prop({ required: false, default: true })
+  is_send: boolean;
 }
 
 export type UserCampaignsDocument = UserCampaigns & Document;

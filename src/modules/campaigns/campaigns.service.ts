@@ -4,7 +4,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/
 import { InjectModel } from "@nestjs/mongoose";
 
 import { CAMPAIGNS_MODEL, CampaignsDocument } from "./schemas/campaigns.schema";
-import { USER_CAMPAIGNS_MODEL, UserCampaignsDocument } from "./schemas/user-campaigns.schema";
+import { USER_CAMPAIGNS_MODEL, UserCampaigns, UserCampaignsDocument } from "./schemas/user-campaigns.schema";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
 import { CreateNewCampaignDto } from "./dto/campaigns.dto";
@@ -18,6 +18,7 @@ import { UsersService } from "modules/users/users.service";
 import { ContractsService } from "modules/contracts/contracts.service";
 import { ContractName } from "common/constants/contract";
 import { LogsService } from "modules/logs/logs.service";
+import { TIMESTAM_HOUR, TIMESTAMP_WEEK } from "common/constants/asset";
 
 @Injectable()
 export class CampaignsService {
@@ -31,7 +32,16 @@ export class CampaignsService {
     private readonly pricesService: PricesService,
     private readonly usersService: UsersService,
     private readonly logsService: LogsService,
-  ) {}
+  ) {
+    void this.syncResetCampaign()
+  }
+
+  saveUserCampagignHistories(items: UserCampaigns | UserCampaigns[]) {
+    if (Array.isArray(items)) {
+      return this.userCampaignsModel.insertMany(items);
+    }
+    return this.userCampaignsModel.create(items);
+  }
 
   async getListCampaigns(query: PaginationDtoAndSortDto) {
     const { limit, page, sortBy = "start_time", sortType = -1 } = query;
@@ -303,22 +313,7 @@ export class CampaignsService {
     const bulkUpdateScore: any[] = [];
     for (const campaign of campaigns) {
       for (const [address, items] of Object.entries(userMintHolders)) {
-        let minusScore = 0;
         const winners = (items as any[]).filter((item: any) => {
-          const found = resParticipated.find((a) => a.address === item.owner);
-          if (found) {
-            const holder = found.start_holders.find((a) => a.mint === item.mint);
-            if (holder) {
-              const token = tokens.find((a) => a.contract_address === holder.mint);
-              if (token) {
-                minusScore = +BigNumber(allPriceTokens[holder.mint])
-                  .multipliedBy(BigNumber(item.amount.toString()).minus(holder.amount.toString()))
-                  .dividedBy(Math.pow(10, token?.decimal || 6))
-                  .toFixed(0);
-                minusScore = minusScore < 0 ? minusScore : 0;
-              }
-            }
-          }
           const campaignHolder = campaign.details.find((a) => a.mint === item.mint);
           return campaignHolder && BigNumber(item.amount.toString()).gte(campaignHolder.amount.toString());
         });
@@ -344,7 +339,7 @@ export class CampaignsService {
                   const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
                   return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
                 }),
-                score: campaign.score + minusScore > 0 ? campaign.score + minusScore : 0,
+                score: campaign.score,
                 status: false,
               },
             },
@@ -355,48 +350,7 @@ export class CampaignsService {
                 address,
               },
               update: {
-                $inc: { score: campaign.score + minusScore > 0 ? campaign.score + minusScore : 0 },
-              },
-            },
-          });
-        } else {
-          bulkUpdate.push({
-            updateOne: {
-              filter: {
-                address,
-                cid: campaign.cid,
-              },
-              update: {
-                end_holders: (items as any[])
-                  .filter((item) => campaign.details.map((a) => a.mint).includes(item.mint))
-                  .map((a) => {
-                    const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
-                    return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
-                  }),
-                score: minusScore,
-                status: false,
-              },
-            },
-          });
-          bulkUpdateScore.push({
-            updateOne: {
-              filter: {
-                address,
-                score: { $gte: minusScore * -1 },
-              },
-              update: {
-                $inc: { score: minusScore },
-              },
-            },
-          });
-          bulkUpdateScore.push({
-            updateOne: {
-              filter: {
-                address,
-                score: { $lt: minusScore * -1 },
-              },
-              update: {
-                score: 0,
+                $inc: { score: campaign.score },
               },
             },
           });
@@ -410,4 +364,25 @@ export class CampaignsService {
     ]);
     this.isRunningEndCampaign = false;
   }
+
+  // @Cron("0 0 * * 1", { name: "syncResetCampaign" })
+  @Cron(CronExpression.EVERY_HOUR, { name: "syncResetCampaign" })
+  async syncResetCampaign() {
+    const timestamp = Date.now();
+    const campaigns = await this.campaignsModel.find();
+    const bulkCreate: any[] = [];
+    for (const campaign of campaigns) {
+      bulkCreate.push({
+        ...campaign,
+        _id: undefined,
+        start_time: timestamp,
+        end_time: timestamp + TIMESTAM_HOUR,
+        status: true
+      })
+    }
+    await Promise.all([
+      bulkCreate.length ? this.campaignsModel.insertMany(bulkCreate) : undefined,
+    ]);
+  }
+
 }
