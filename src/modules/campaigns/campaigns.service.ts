@@ -33,7 +33,8 @@ export class CampaignsService {
     private readonly usersService: UsersService,
     private readonly logsService: LogsService,
   ) {
-    void this.syncStartCampaign()
+    void this.syncResetCampaign();
+    // void this.syncStartCampaign();
   }
 
   saveUserCampagignHistories(items: UserCampaigns | UserCampaigns[]) {
@@ -151,6 +152,22 @@ export class CampaignsService {
         $project: {
           campaign: 1,
           address: 1,
+          event: 1,
+          detail: {
+            $map: {
+              input: "$detail",
+              as: "d",
+              in: {
+                mint: "$$d.mint",
+                symbol: "$$d.symbol",
+                decimal: "$$d.decimal",
+                amount: { $toString: "$$d.amount" },
+              },
+            },
+          },
+          is_buy: 1,
+          is_send: 1,
+          tx: 1,
           timestamp: 1,
           score: 1,
           start_holders: {
@@ -223,7 +240,7 @@ export class CampaignsService {
     }
     const [resParticipated, allUsers] = await Promise.all([
       this.userHasParticipated(cids),
-      this.usersService.getAllUsers()
+      this.usersService.getAllUsers(),
     ]);
     const allAddresses = allUsers.map((a) => a.address);
     const userHolders = await this.holdersService.userHolders(Network.solana, mints, allAddresses);
@@ -270,24 +287,28 @@ export class CampaignsService {
     const bulkCreate: any[] = [];
     for (const campaign of campaigns) {
       for (const [address, items] of Object.entries(userMintHolders)) {
-          const check = resParticipated.find(a => a.cid === campaign.cid && a.address === address);
-          const holders = (items as any[]).filter((item: any) => {
-            const campaignHolder = campaign.details.find((a) => a.mint === item.mint);
-            return campaignHolder && BigNumber(item.amount.toString()).gte(campaignHolder.amount.toString());
+        const check = resParticipated.find((a) => a.cid === campaign.cid && a.address === address);
+        const holders = (items as any[]).filter((item: any) => {
+          const campaignHolder = campaign.details.find((a) => a.mint === item.mint);
+          return campaignHolder && BigNumber(item.amount.toString()).gte(campaignHolder.amount.toString());
+        });
+        if (!check && holders.length === campaign.details.length) {
+          bulkCreate.push({
+            address,
+            cid: campaign.cid,
+            start_holders: holders.map((a) => {
+              const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
+              return {
+                mint: a.mint,
+                amount: a.amount,
+                symbol: campaignHolder?.symbol,
+                decimal: campaignHolder?.decimal,
+              };
+            }),
+            status: true,
           });
-          if (!check && holders.length === campaign.details.length) {
-            bulkCreate.push({
-              address,
-              cid: campaign.cid,
-              start_holders: holders.map((a) => {
-                const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
-                return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
-              }),
-              status: true,
-            });
-          }
         }
-      
+      }
     }
     await Promise.all([bulkCreate.length ? this.userCampaignsModel.insertMany(bulkCreate) : undefined]);
     this.isRunningStartCampaign = false;
@@ -305,7 +326,7 @@ export class CampaignsService {
     ]);
     if (!allPriceTokens || !Object.keys(allPriceTokens).length || !tokens.length) {
       this.isRunningEndCampaign = false;
-      this.logsService.createLog("syncEndCampaign", JSON.stringify(allPriceTokens) + "__" + JSON.stringify(tokens))
+      this.logsService.createLog("syncEndCampaign", JSON.stringify(allPriceTokens) + "__" + JSON.stringify(tokens));
       return;
     }
     const bulkUpdate: any[] = [];
@@ -337,7 +358,12 @@ export class CampaignsService {
               update: {
                 end_holders: winners.map((a) => {
                   const campaignHolder = campaign.details.find((b) => b.mint === a.mint);
-                  return { mint: a.mint, amount: a.amount, symbol: campaignHolder?.symbol, decimal: campaignHolder?.decimal };
+                  return {
+                    mint: a.mint,
+                    amount: a.amount,
+                    symbol: campaignHolder?.symbol,
+                    decimal: campaignHolder?.decimal,
+                  };
                 }),
                 score: campaign.score,
                 status: false,
@@ -369,23 +395,24 @@ export class CampaignsService {
   @Cron(CronExpression.EVERY_6_HOURS, { name: "syncResetCampaign" })
   async syncResetCampaign() {
     const timestamp = Date.now();
-    const campaigns = await this.campaignsModel.find({ is_origin: true }).sort({ cid: 1 });
+    const [campaigns, lastS] = await Promise.all([
+      this.campaignsModel.find({ is_origin: true }).sort({ cid: 1 }),
+      this.campaignsModel.find().sort({ cid: -1 }).limit(1),
+    ]);
+    const currentCID = lastS.length ? lastS[0].cid : 0;
     const bulkCreate: any[] = [];
-    campaigns.forEach((campaign, i)  => {
+    campaigns.forEach((campaign, i) => {
       bulkCreate.push({
-        cid: campaigns.length + i + 1,
+        cid: currentCID + i + 1,
         name: campaign.name,
         type: campaign.type,
         details: campaign.details,
         score: campaign.score,
         start_time: timestamp,
         end_time: timestamp + 6 * TIMESTAM_HOUR,
-        status: true
-      })
+        status: true,
+      });
     });
-    await Promise.all([
-      bulkCreate.length ? this.campaignsModel.insertMany(bulkCreate) : undefined,
-    ]);
+    await Promise.all([bulkCreate.length ? this.campaignsModel.insertMany(bulkCreate) : undefined]);
   }
-
 }
