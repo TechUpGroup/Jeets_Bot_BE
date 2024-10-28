@@ -154,16 +154,10 @@ export class CampaignsService {
           address: 1,
           event: 1,
           detail: {
-            $map: {
-              input: "$detail",
-              as: "d",
-              in: {
-                mint: "$$d.mint",
-                symbol: "$$d.symbol",
-                decimal: "$$d.decimal",
-                amount: { $toString: "$$d.amount" },
-              },
-            },
+            mint: "$detail.mint",
+            symbol: "$detail.symbol",
+            decimal: "$detail.decimal",
+            amount: { $toString: "$detail.amount" },
           },
           is_buy: 1,
           is_send: 1,
