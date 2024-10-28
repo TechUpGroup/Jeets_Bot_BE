@@ -19,6 +19,7 @@ import { ContractsService } from "modules/contracts/contracts.service";
 import { ContractName } from "common/constants/contract";
 import { LogsService } from "modules/logs/logs.service";
 import { TIMESTAM_HOUR, TIMESTAMP_WEEK } from "common/constants/asset";
+import { EVENT_CAMPAGIN_HISTORIES } from "common/constants/event";
 
 @Injectable()
 export class CampaignsService {
@@ -293,6 +294,7 @@ export class CampaignsService {
         });
         if (!check && holders.length === campaign.details.length) {
           bulkCreate.push({
+            event: EVENT_CAMPAGIN_HISTORIES.HOLD,
             address,
             cid: campaign.cid,
             start_holders: holders.map((a) => {

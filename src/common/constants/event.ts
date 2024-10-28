@@ -11,4 +11,12 @@ export enum EVENT_TOKEN {
   TRANSFER = "transferChecked",
 }
 
+export enum EVENT_CAMPAGIN_HISTORIES {
+  HOLD = "Hold",
+  SENT = "Sent",
+  RECEIVED = "Received",
+  BUY = "Buy",
+  SELL = "Sell",
+}
+
 export const messageErr = "query returned more than 10000 results";

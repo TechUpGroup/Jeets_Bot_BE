@@ -9,7 +9,7 @@ import { HistoriesService } from "modules/histories/histories.service";
 import { HelperSolanaService } from "./_helper-solana.service";
 import { IEventParams } from "../interfaces/helper-solana.interface";
 import { Network } from "common/enums/network.enum";
-import { EVENT_TOKEN } from "common/constants/event";
+import { EVENT_CAMPAGIN_HISTORIES, EVENT_TOKEN } from "common/constants/event";
 import { UsersService } from "modules/users/users.service";
 import BigNumber from "bignumber.js";
 import { CampaignsService } from "modules/campaigns/campaigns.service";
@@ -99,7 +99,7 @@ export class JobSyncEventTokenService {
             },
           });
           bulkCreate.push({
-            event: event.event,
+            event: is_buy ? EVENT_CAMPAGIN_HISTORIES.BUY : EVENT_CAMPAGIN_HISTORIES.SELL,
             address: account,
             cid: 0,
             start_holders: [],
@@ -130,7 +130,7 @@ export class JobSyncEventTokenService {
               },
             });
             bulkCreate.push({
-              event: event.event,
+              event: EVENT_CAMPAGIN_HISTORIES.SENT,
               address: from,
               cid: 0,
               start_holders: [],
@@ -161,7 +161,7 @@ export class JobSyncEventTokenService {
               },
             });
             bulkCreate.push({
-              event: event.event,
+              event: EVENT_CAMPAGIN_HISTORIES.RECEIVED,
               address: to,
               cid: 0,
               start_holders: [],
