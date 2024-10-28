@@ -103,14 +103,12 @@ export class JobSyncEventTokenService {
             address: account,
             cid: 0,
             start_holders: [],
-            detail: [
-              {
-                mint: contract_address,
-                amount,
-                symbol: symbol || "$MOON",
-                decimal: decimal || 6,
-              },
-            ],
+            detail: {
+              mint: contract_address,
+              amount,
+              symbol: symbol || "$MOON",
+              decimal: decimal || 6,
+            },
             score: minusScore,
             is_buy,
             status: false,
@@ -134,14 +132,12 @@ export class JobSyncEventTokenService {
               address: from,
               cid: 0,
               start_holders: [],
-              detail: [
-                {
-                  mint: contract_address,
-                  amount,
-                  symbol: symbol || "$MOON",
-                  decimal: decimal || 6,
-                },
-              ],
+              detail: {
+                mint: contract_address,
+                amount,
+                symbol: symbol || "$MOON",
+                decimal: decimal || 6,
+              },
               score: minusScore * -1,
               is_buy,
               is_send: true,
@@ -165,14 +161,12 @@ export class JobSyncEventTokenService {
               address: to,
               cid: 0,
               start_holders: [],
-              detail: [
-                {
-                  mint: contract_address,
-                  amount,
-                  symbol: symbol || "$MOON",
-                  decimal: decimal || 6,
-                },
-              ],
+              detail: {
+                mint: contract_address,
+                amount,
+                symbol: symbol || "$MOON",
+                decimal: decimal || 6,
+              },
               score: minusScore,
               is_buy,
               is_send: false,

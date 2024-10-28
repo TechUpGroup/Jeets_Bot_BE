@@ -19,10 +19,10 @@ export class UserCampaigns {
   @Prop({ required: false, default: new Date() })
   timestamp: Date;
 
-  @Prop({ required: true, type: [DetailsSchema], default: [] })
+  @Prop({ required: false, type: [DetailsSchema], default: [] })
   start_holders: Details[];
 
-  @Prop({ required: true, type: [DetailsSchema], default: [] })
+  @Prop({ required: false, type: [DetailsSchema], default: [] })
   end_holders: Details[];
 
   @Prop({ required: true, default: 0 })
@@ -34,8 +34,8 @@ export class UserCampaigns {
   @Prop({ required: false, enum: EVENT_CAMPAGIN_HISTORIES })
   event: EVENT_CAMPAGIN_HISTORIES;
 
-  @Prop({ required: true, type: [DetailsSchema], default: [] })
-  detail: Details[];
+  @Prop({ required: false, type: DetailsSchema })
+  detail: Details;
 
   @Prop({ required: false, default: true })
   is_buy: boolean;
