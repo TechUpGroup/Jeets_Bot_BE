@@ -48,7 +48,7 @@ export class Campaigns {
   @Prop({ required: true, default: true })
   status: boolean;
 
-  @Prop({ required: true, default: true })
+  @Prop({ required: true, default: false })
   is_origin: boolean;
 }
 
