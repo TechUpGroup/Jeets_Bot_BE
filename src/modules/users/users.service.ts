@@ -6,15 +6,16 @@ import { InjectModel } from "@nestjs/mongoose";
 import { USERS_MODEL, UsersDocument } from "./schemas/users.schema";
 import { ErrorMessages } from "./users.constant";
 import { Network } from "common/enums/network.enum";
-import { UpdateUserDto } from "./dto/user.dto";
-import { S3Service } from "modules/_shared/services/s3.service";
+import { telegramCheckAuth } from "common/utils";
+import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
+import { XService } from "modules/_shared/x/x.service";
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(USERS_MODEL)
     private readonly usersModel: PaginateModel<UsersDocument>,
-    private readonly s3Service: S3Service,
+    private readonly xService: XService,
   ) {}
 
   async queryUsers(filter: any, options: any) {
@@ -32,12 +33,26 @@ export class UsersService {
     return false;
   }
 
+  async isSocialTaken(data: any) {
+    const checkSocial = await this.usersModel.findOne({
+      ...data,
+    });
+    if (checkSocial) {
+      return true;
+    }
+    return false;
+  }
+
   async create(address: string, network: Network) {
     const isAddressTaken = await this.isAddressTaken(address);
     if (isAddressTaken) {
       throw new BadRequestException(ErrorMessages.ADDRESS_EXISTS);
     }
     return this.usersModel.create({ address, network });
+  }
+
+  getAllUsers() {
+    return this.usersModel.find();
   }
 
   async getUser(id: string) {
@@ -145,11 +160,106 @@ export class UsersService {
     return this.usersModel.updateOne({ _id: new Types.ObjectId(id) }, { $inc: { balance: amount } });
   }
 
-  bulkBalance(bulkUpdate: any[]) {
+  bulkWrite(bulkUpdate: any[]) {
     return this.usersModel.bulkWrite(bulkUpdate);
   }
 
-  async updateUser(user: UsersDocument, body: UpdateUserDto) {
-    return this.usersModel.updateOne({ _id: user._id }, { ...body });
+  async connectTelegram(user: UsersDocument, data: ConnectTelegramDto) {
+    const base64 = data.code.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join(""),
+    );
+    const userInfo = JSON.parse(jsonPayload);
+
+    if (user.telegram_uid) {
+      throw new BadRequestException(
+        "User with this wallet address already connected telegram with telegram_uid " + user.telegram_uid,
+      );
+    }
+    // validate hash
+    if (!telegramCheckAuth(userInfo)) {
+      throw new BadRequestException("Hash not matched or expired");
+    }
+
+    if(await this.isSocialTaken({ telegram_uid: userInfo.id })) {
+      throw new BadRequestException("This telegram user already connected to other user.");
+    }
+
+    try {
+      await this.usersModel.findByIdAndUpdate(user._id, {
+        $set: {
+          telegram_uid: userInfo.id,
+          telegram_username: userInfo.username,
+        },
+      });
+
+      return userInfo;
+    } catch (error) {
+      console.error("Error:", error.message);
+      throw new BadRequestException("Internal Server Error");
+    }
+  }
+
+  async twitterConnect(user: UsersDocument, { code }: ConnectTwitterDto, forceReconnect = false) {
+    if (!forceReconnect && user.twitter_uid) {
+      throw new BadRequestException("This user already connected twitter with twitter_uid " + user.twitter_uid);
+    }
+    const [userInfo, resultToken] = await Promise.all([
+      this.getUser(user._id),
+      this.xService.obtainingAccessToken(code),
+    ]);
+    const userMe = await resultToken.client.v2
+      .me({
+        "user.fields": [
+          "created_at",
+          "description",
+          "entities",
+          "id",
+          "location",
+          "name",
+          "pinned_tweet_id",
+          "profile_image_url",
+          "protected",
+          "public_metrics",
+          "url",
+          "username",
+          "verified",
+          "verified_type",
+          "withheld",
+        ],
+      })
+      .catch((error) => {
+        console.error({ accessToken: resultToken.accessToken }, error?.response?.data || error);
+      });
+
+    if (!userMe) {
+      throw new BadRequestException("Cannot get userInfo");
+    }
+
+    // check match connected user.
+    if (forceReconnect && userMe.data.id !== user.twitter_uid) {
+      throw new BadRequestException("X user does not match the connected X user.");
+    }
+
+    const otherUser = await this.usersModel.findOne({ twitter_uid: userMe.data.id });
+    if (otherUser && otherUser._id.toString() !== user._id.toString()) {
+      throw new BadRequestException("This twitter user already connected to other user.");
+    }
+
+    // save access token
+    await this.xService.updateToken(userMe.data.id, resultToken);
+
+    // save
+    userInfo.twitter_uid = userMe.data.id;
+    userInfo.twitter_username = userMe.data.username;
+    userInfo.twitter_avatar = userMe.data?.profile_image_url || "";
+    userInfo.twitter_verified_type = userMe.data?.verified_type || "";
+    userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
+    return await userInfo.save();
   }
 }

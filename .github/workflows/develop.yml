@@ -79,6 +79,7 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
 
       - name: Deploy develop
-        run: ssh dev "cd /home/$SSH_USER/soljeets_be && ./deploy.sh"
+        if: github.ref == 'refs/heads/develop'
+        run: ssh dev "cd /home/$SSH_USER/soljeets_be_testnet && ./deploy.sh"
         env:
           SSH_USER: ${{ secrets.SSH_USER }}

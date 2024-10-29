@@ -7,6 +7,7 @@ import { Injectable } from "@nestjs/common";
 
 import { ContractParams } from "../interfaces/helper-solana.interface";
 import { web3 } from "@project-serum/anchor";
+import { ContractName } from "common/constants/contract";
 
 @Injectable()
 export class HelperSolanaService {
@@ -41,13 +42,29 @@ export class HelperSolanaService {
   /****************************************************/
 
   private getEvents = async ({ contract, eventParser }: ContractParams) => {
-    const { tx_synced, contract_address, network } = contract;
+    const { tx_synced, contract_address, network, name } = contract;
 
     let res: any;
     if (eventParser) {
-      res = await this.solanasService.getAllEventTransactions(
+      if (name === ContractName.POOL) {
+        res = await this.solanasService.getAllEventTransactions(
+          network,
+          eventParser,
+          new web3.PublicKey(contract_address),
+          tx_synced,
+        );
+      }
+      if (name === ContractName.VOTE) {
+        res = await this.solanasService.getAllEventVotingTransactions(
+          network,
+          eventParser,
+          new web3.PublicKey(contract_address),
+          tx_synced,
+        );
+      }
+    } else {
+      res = await this.solanasService.getAllEventTransferToken(
         network,
-        eventParser,
         new web3.PublicKey(contract_address),
         tx_synced,
       );

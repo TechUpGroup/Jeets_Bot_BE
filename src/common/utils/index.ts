@@ -1,5 +1,7 @@
 import BigNumber from "bignumber.js";
 import ShortUniqueId from "short-unique-id";
+import crypto from "crypto";
+import config from "common/config";
 
 const uid = new ShortUniqueId({ dictionary: "hex", length: 15 });
 
@@ -141,4 +143,42 @@ export const generateRandomCode = () => {
     );
   }
   return randomString;
+};
+
+export const telegramCheckAuth = (authData: any) => {
+  const { hash, ...data } = authData;
+
+  // Check if auth_date is recent (within 5 minutes)
+  const currentTime = Math.floor(Date.now() / 1000);
+  const authTime = parseInt(data.auth_date, 10);
+  const timeWindow = 5 * 60; // 5 minutes in seconds
+
+  if (currentTime - authTime > timeWindow) {
+    console.error("Telegram login attempt expired.");
+    return false;
+  }
+
+  const secret = crypto.createHash("sha256").update(config.telegram.api_key).digest();
+  const sortedKeys = Object.keys(data).sort();
+  const dataCheckString = sortedKeys.map((key) => `${key}=${data[key]}`).join("\n");
+  const hmac = crypto.createHmac("sha256", secret).update(dataCheckString).digest("hex");
+
+  return hmac === hash;
+};
+
+export const onDay = (date1: Date, date2: Date) => {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+};
+
+export const diffDay = (date1: Date, date2: Date) => {
+  date1.setHours(0, 0, 0);
+  date2.setHours(0, 0, 0);
+
+  const diffInMilliseconds = date1.getTime() - date2.getTime();
+
+  return diffInMilliseconds / (1000 * 60 * 60 * 24);
 };

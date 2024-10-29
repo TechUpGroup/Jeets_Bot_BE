@@ -25,6 +25,7 @@ class Config {
       host: this.getString("server.host"),
       port: this.getNumber("server.port"),
       url: this.getString("server.url"),
+      tracking_url: this.getString("server.tracking_url"),
     };
   }
 
@@ -62,12 +63,13 @@ class Config {
 
   get redisConfig(): CacheModuleOptions {
     return {
+      enable: this.getBoolean("redis.enable"),
       isGlobal: true,
       store: redisStore,
       url: this.getString("redis.uri"),
       prefix: `${this.getString("redis.prefix")}_${this.nodeEnv}_`,
-      ttl: 10,
-    };
+      ttl: 10 * 69 * 1000,
+    } as any;
   }
 
   get jwt() {
@@ -91,6 +93,10 @@ class Config {
 
   get admin() {
     return this.getString("authAdmin");
+  }
+
+  get helius_url() {
+    return this.getString("helius_url");
   }
 
   get fallbackLanguage(): string {
@@ -117,10 +123,18 @@ class Config {
 
   get telegram() {
     return {
-      enable: this.getBoolean("telegram.enable"),
       api_key: this.getString("telegram.api_key"),
-      web_app: this.getString("telegram.web_app"),
-      channel: this.getString("telegram.channel"),
+      bot_id: this.getString("telegram.bot_id"),
+      origin_url: this.getString("telegram.origin_url"),
+      callback_url: this.getString("telegram.callback_url"),
+    };
+  }
+
+  get twitter() {
+    return {
+      clientId: this.getString("twitter.clientId"),
+      clientSecret: this.getString("twitter.clientSecret"),
+      callbackURL: this.getString("twitter.callbackURL"),
     };
   }
 
@@ -137,6 +151,7 @@ class Config {
   getBlockchainPrivateKey(network: Network) {
     return {
       operator: this.getString(`blockchain.${network}.operator`),
+      authority: this.getString(`blockchain.${network}.authority`),
     }
   }
 
@@ -156,12 +171,34 @@ class Config {
     return this.getBlockChainInfo(network, "provider");
   }
 
-  getContract(network: Network, key: ContractName) {
-    const address = this.getBlockChainInfo(network, `contract.${key}.address`);
-    const tx_creator = this.getBlockChainInfo(network, `contract.${key}.tx_creator`);
+  getContract() {
+    const pools = [
+      "Ba5LSmzQjhi5bCz1GwUmNvhH59UdAgnGKeH7YoR8KXPg",
+      "cE6fMRnkA8AcTXBTvWbHxXoBGoDENhmN9rd59mh5FEb",
+      "4yc4CPtuUFHLTc6Mxx7X3deZRwVk9vVAXmsy61n49UH3",
+      "6T9uhwscHxTvMADKqH17kxF43es3pD99b32W8Q3khJSb",
+      "4DV4B42oAD6m7GLCTH1K7UKa8Jb9D6G2yjEm5V2F24nZ",
+      "A1KrSRmoZ8SPUTSuMJyx8si5uiirDEQKpWk2ymQHCa4A",
+      "4biuJy7eAUyDdPBvDc8ZBkmujVhVnyTv6Y5FbGwWWmdw",
+      "DCrcUX4MZjhZqXn5SQx932y8Z1VkPLmL9RgPHyK3hZCi",
+      "4RAVBWfSkoiNUwEMZkVu1mypd2Tc8gcXNT6XtVncMyPu",
+      "5uyEauM9x5nJ5KLUm8BYUQHYnkZ7E4J13skw3DAobV3o"
+    ];
+    const votes = [
+      "HeHN6998jMeBvpUoh5sc4c3JjRF5WwaqLKjXPJoFva8E"
+    ]
+    const tokens = [
+      {
+        mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
+        totalSupply: "1000000000000000",
+        symbol: "$MOON",
+        decimal: 6
+      }
+    ]
     return {
-      address,
-      tx_creator: tx_creator || "",
+      pools,
+      votes,
+      tokens,
     };
   }
 

@@ -3,15 +3,16 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 
 import { CacheService } from "./cache.service";
 import axios from "axios";
+import { KEY_PRICE_TOKEN } from "modules/_jobs/sync-holder/solana/services/sync-holder.service";
 
 export const KEY_PRICE_COINGECKO = "all_price_coingecko";
 
 export enum Token {
-  ETH = "ethereum",
+  SOL = "solana",
 }
 
 @Injectable()
-export class CoingeckoService {
+export class PricesService {
   constructor(private readonly cacheService: CacheService) {
     void this.start();
   }
@@ -24,11 +25,15 @@ export class CoingeckoService {
     try {
       this.isRunning = true;
       await this.getAllPrice(false);
-    } catch (e) {
-      console.error(e);
+    } catch {
     } finally {
       this.isRunning = false;
     }
+  }
+
+  async getAllPriceToken() {
+    const cachedPrice = await this.cacheService.getKey(KEY_PRICE_TOKEN);
+    if (cachedPrice) return JSON.parse(cachedPrice);
   }
 
   async getAllPrice(isCache = true) {
@@ -45,16 +50,20 @@ export class CoingeckoService {
     for (const [key, name] of Object.entries(Token)) {
       res[key] = prices[name].usd;
     }
-    await this.cacheService.setKey(KEY_PRICE_COINGECKO, JSON.stringify(res), 6 * 60 * 1000);
+    await this.cacheService.setKey(KEY_PRICE_COINGECKO, JSON.stringify(res), 15 * 60 * 1000);
     console.log("=> Price: ", JSON.stringify(res));
     return res;
   }
 
   private async getPrice(ids: string) {
-    const res = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-    if (res) {
-      return res.data;
+    try {
+      const res = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+      if (res) {
+        return res.data;
+      }
+      return
+    } catch {
+      return;
     }
-    return;
   }
 }

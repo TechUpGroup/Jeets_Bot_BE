@@ -8,6 +8,8 @@ import { InjectModel } from "@nestjs/mongoose";
 
 import { Contracts, CONTRACTS_MODEL, ContractsDocument } from "./schemas/contracts.schema";
 import { ContractName } from "common/constants/contract";
+import { Detail } from "aws-sdk/clients/forecastservice";
+import { Details } from "modules/campaigns/dto/campaigns.dto";
 
 @Injectable()
 export class ContractsService {
@@ -26,8 +28,8 @@ export class ContractsService {
     return await this.contractModel.updateOne({ _id }, { tx_synced });
   }
 
-  async checkContractExist(name: ContractName, network: Network) {
-    return !!(await this.contractModel.findOne({ name, network }));
+  async checkContractExist(contract_address: string, network: Network) {
+    return !!(await this.contractModel.findOne({ contract_address, network }));
   }
 
   async getContractByName(name: ContractName, network?: Network) {
@@ -36,6 +38,14 @@ export class ContractsService {
       query.network = network;
     }
     return await this.contractModel.findOne(query);
+  }
+
+  async getAllContractsByName(name: ContractName, network?: Network) {
+    const query: any = { name };
+    if (network) {
+      query.network = network;
+    }
+    return await this.contractModel.find(query);
   }
 
   async getContractByNames(names: ContractName[], network?: Network) {
@@ -59,31 +69,88 @@ export class ContractsService {
     });
   }
 
+ async createContracts(datas: Details[]) {
+    {
+      const contractCreate: {
+        contract_address: string;
+        tx_synced?: string;
+        total_supply?: string;
+        decimal?: number;
+        symbol?: string;
+        name: ContractName;
+        network: Network;
+      }[] = [];
+
+      for (const { mint, totalSupply, decimal, symbol } of datas) {
+        contractCreate.push({
+          contract_address: mint,
+          tx_synced: undefined,
+          name: ContractName.TOKEN,
+          total_supply: totalSupply,
+          decimal,
+          symbol,
+          network: Network.solana,
+        });
+      }
+
+      for (const contract of contractCreate) {
+        const { contract_address, network } = contract;
+        if (!contract_address) continue;
+        if (!(await this.checkContractExist(contract_address, network))) {
+          await this.createContract(contract);
+        }
+      }
+    }
+  }
+
   async initContract() {
     try {
       const contractCreate: {
         contract_address: string;
         tx_synced?: string;
+        total_supply?: string;
+        decimal?: number;
+        symbol?: string;
         name: ContractName;
         network: Network;
       }[] = [];
 
       for (const network of allNetworks) {
-        for (const name of Object.values(ContractName)) {
-          const { address, tx_creator } = config.getContract(network, name);
+        for (const address of config.getContract().pools) {
           contractCreate.push({
             contract_address: address,
-            tx_synced: tx_creator !== "" ? tx_creator : undefined,
-            name,
+            tx_synced: undefined,
+            name: ContractName.POOL,
+            network,
+          });
+        }
+        for (const address of config.getContract().votes) {
+          contractCreate.push({
+            contract_address: address,
+            tx_synced: undefined,
+            name: ContractName.VOTE,
+            network,
+          });
+        }
+      }
+      for (const network of allNetworks) {
+        for (const { mint, totalSupply, decimal, symbol } of config.getContract().tokens) {
+          contractCreate.push({
+            contract_address: mint,
+            tx_synced: undefined,
+            name: ContractName.TOKEN,
+            total_supply: totalSupply,
+            decimal,
+            symbol,
             network,
           });
         }
       }
 
       for (const contract of contractCreate) {
-        const { contract_address, name, network } = contract;
+        const { contract_address, network } = contract;
         if (!contract_address) continue;
-        if (!(await this.checkContractExist(name, network))) {
+        if (!(await this.checkContractExist(contract_address, network))) {
           await this.createContract(contract);
         }
       }

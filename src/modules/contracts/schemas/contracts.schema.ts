@@ -9,11 +9,20 @@ export const CONTRACTS_MODEL = "contracts";
 
 @Schema(Options)
 export class Contracts {
-  @Prop({ required: true, trim: true, index: true })
+  @Prop({ required: true, trim: true, index: true, unique: true })
   contract_address: string;
 
   @Prop({ required: false })
   tx_synced?: string;
+
+  @Prop({ required: false })
+  total_supply?: string;
+
+  @Prop({ required: false })
+  decimal?: number;
+
+  @Prop({ required: false })
+  symbol?: string;
 
   @Prop({ required: true, enum: ContractName })
   name: string;
@@ -24,4 +33,3 @@ export class Contracts {
 
 export type ContractsDocument = Contracts & Document;
 export const ContractsSchema = SchemaFactory.createForClass(Contracts);
-ContractsSchema.index({ contract_address: 1, network: 1 }, { unique: true });

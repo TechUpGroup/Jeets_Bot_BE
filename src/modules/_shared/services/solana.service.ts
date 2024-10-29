@@ -3,22 +3,25 @@ import { allNetworks } from "common/constants/network";
 import { Network } from "common/enums/network.enum";
 import { SignerType } from "common/enums/signer.enum";
 
-import { Injectable } from "@nestjs/common";
-import { AnchorProvider, EventParser, Wallet, web3 } from "@project-serum/anchor";
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { AnchorProvider, BN, Wallet, web3 } from "@project-serum/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
-import { EVENT } from "common/constants/event";
-import idl from "common/idl/pool.json";
-import { Cron, CronExpression } from "@nestjs/schedule";
-import { ScJeetsSol } from "common/idl/jeets";
+import { EVENT, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
+import { common, votingIDL } from "common/idl/pool";
 import { LogsService } from "modules/logs/logs.service";
+import { TOTAL_AMOUNT } from "common/constants/asset";
+import { ScJeetsSol, Voting } from "common/idl/jeets";
 
 interface SolanaProvider {
   connection: web3.Connection;
   connectionConfirmed: web3.Connection;
+  connectionVoting: web3.Connection;
+  connectionConfirmedVoting: web3.Connection;
   signers: Map<SignerType, web3.Keypair>;
   provider: AnchorProvider;
   providerEvent: AnchorProvider;
+  providerVoting: AnchorProvider;
 }
 
 export interface SolanaEvents {
@@ -26,102 +29,109 @@ export interface SolanaEvents {
   transactionHash: string;
   logIndex: number;
   blockTime: number;
-  remain: number;
-  transfer_amount: string;
-}
-
-export interface SolanaTransferEvents {
-  event: any;
-  transactionHash: string;
-  logIndex: number;
-  blockTime: number;
-  amount: string;
-  from: string;
-  to: string;
+  remain?: number;
+  transfer_amount?: string;
+  account?: string;
+  uid?: number;
+  sessionId?: number;
+  amount?: number;
+  is_buy?: boolean;
+  from?: string;
+  to?: string;
 }
 
 interface TransferResponse {
-  solanaEvents: SolanaEvents[] | SolanaTransferEvents[];
+  solanaEvents: SolanaEvents[];
   signatureLatest?: string;
 }
 
+const modifyComputeUnits = web3.ComputeBudgetProgram.setComputeUnitLimit({
+  units: 300_000,
+});
+
+const addPriorityFee = web3.ComputeBudgetProgram.setComputeUnitPrice({
+  microLamports: 600_000,
+});
+
 @Injectable()
 export class SolanasService {
-  private rpcChoosen = 0;
   private readonly solanaMap: Map<Network, SolanaProvider>;
+  private readonly programMap: Map<string, anchor.Program<ScJeetsSol>>;
 
-  constructor(
-    private readonly logsService: LogsService
-  ) {
+  constructor(private readonly logsService: LogsService) {
     this.solanaMap = new Map<Network, SolanaProvider>();
+    this.programMap = new Map<string, anchor.Program<ScJeetsSol>>();
     for (const network of allNetworks) {
-      const connection: web3.Connection = new web3.Connection(config.getBlockchainProvider(network), "recent");
-      const connectionConfirmed: web3.Connection = new web3.Connection(
-        config.getBlockchainProvider(network),
-        "confirmed",
-      );
+      const connection: web3.Connection = new web3.Connection(config.listRPC[0], "recent");
+      const connectionConfirmed: web3.Connection = new web3.Connection(config.listRPC[1], "confirmed");
+      const connectionVoting: web3.Connection = new web3.Connection(config.listRPC[2], "recent");
+
+      const connectionConfirmedVoting: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
 
       const signerTypes = new Map<SignerType, web3.Keypair>();
-      const { operator } = config.getBlockchainPrivateKey(network);
+      const { operator, authority } = config.getBlockchainPrivateKey(network);
       if (operator) signerTypes.set(SignerType.operator, this.loadKeyPair(operator));
+      if (authority) signerTypes.set(SignerType.authority, this.loadKeyPair(authority));
 
       const wallet = new Wallet(this.loadKeyPair(operator));
+      const walletAuthority = new Wallet(this.loadKeyPair(authority));
       const provider = new AnchorProvider(connection, wallet, {
         commitment: "processed",
       });
       const providerEvent = new AnchorProvider(connection, wallet, {
         commitment: "confirmed",
       });
-      this.solanaMap.set(network, { connection, connectionConfirmed, signers: signerTypes, provider, providerEvent });
-    }
-  }
-
-  switchRPC() {
-    for (const network of allNetworks) {
-      this.rpcChoosen = (this.rpcChoosen + 1) % 4;
-      const connection: web3.Connection = new web3.Connection(config.listRPC[this.rpcChoosen], "recent");
-      const connectionConfirmed: web3.Connection = new web3.Connection(config.listRPC[this.rpcChoosen], "confirmed");
-
-      const signerTypes = new Map<SignerType, web3.Keypair>();
-      const { operator } = config.getBlockchainPrivateKey(network);
-      if (operator) signerTypes.set(SignerType.operator, this.loadKeyPair(operator));
-
-      const wallet = new Wallet(this.loadKeyPair(operator));
-      const provider = new AnchorProvider(connection, wallet, {
-        commitment: "processed",
-      });
-      const providerEvent = new AnchorProvider(connection, wallet, {
+      const providerVoting = new AnchorProvider(connectionVoting, walletAuthority, {
         commitment: "confirmed",
       });
       this.solanaMap.set(network, {
         connection,
         connectionConfirmed,
+        connectionVoting,
+        connectionConfirmedVoting,
         signers: signerTypes,
         provider,
         providerEvent,
+        providerVoting,
       });
+      for (const address of config.getContract().pools) {
+        common.address = address;
+        const anchorProgram = new anchor.Program(
+          common as ScJeetsSol,
+          this.getProvider(Network.solana) as anchor.AnchorProvider,
+        );
+        this.programMap.set(address, anchorProgram);
+      }
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async syncTransferToken() {
-    try {
-      const mint = new web3.PublicKey("FiHGhC3YXNGSUUbVE6M6FtjLS4jdBi9n9wQzhXxwDgXf");
-      const operator = this.getSigner(Network.solana, SignerType.operator);
-      const program = new anchor.Program(idl as ScJeetsSol, this.getProvider(Network.solana) as anchor.AnchorProvider);
-  
-      await program.methods
-        .operatorTransfer()
-        .accounts({
-          mint: mint,
-          receiver: operator.publicKey,
-        })
-        .signers([operator])
-        .rpc();
-    } catch(e) {
-      this.logsService.createLog("syncTransferToken", e)
+    const network = Network.solana;
+    for (const address of config.getContract().pools) {
+      try {
+        const mint = new web3.PublicKey("FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump");
+        const operator = this.getSigner(network, SignerType.operator);
+        const program = this.getProgram(address);
+        await program.methods
+          .operatorTransfer(new BN(TOTAL_AMOUNT))
+          .accounts({
+            mint: mint,
+          })
+          .signers([operator])
+          .rpc();
+      } catch (e) {
+        console.log(e);
+        this.logsService.createLog("syncTransferToken", e);
+      }
+      await new Promise((r) => setTimeout(r, 10 * 1000));
     }
+  }
 
+  getProgram(address: string) {
+    const program = this.programMap.get(address);
+    if (!program) throw new Error(`${address} is not set`);
+    return program;
   }
 
   async getTokenAccountOwner(tokenAccount: web3.PublicKey): Promise<string> {
@@ -131,7 +141,7 @@ export class SolanasService {
   }
 
   async getTokenAccountBalance(network: Network): Promise<string> {
-    const associateUser = new web3.PublicKey("CxyKMYiDGdGfCLhm3yY7JTB9xWZf1EhW5hMjtTFGFVHw");
+    const associateUser = new web3.PublicKey("6vJqmEH6eNfHzEPu7parjtwqBpKwiWPB9RruURsHxWCH");
     const amount = await this.getConnectionConfirmed(network).getTokenAccountBalance(associateUser);
     return amount.value.amount;
   }
@@ -155,12 +165,24 @@ export class SolanasService {
     return this.getNetwork(network).connectionConfirmed;
   }
 
+  getConnectionVoting(network: Network) {
+    return this.getNetwork(network).connectionVoting;
+  }
+
+  getConnectionConfirmedVoting(network: Network) {
+    return this.getNetwork(network).connectionConfirmedVoting;
+  }
+
   getProvider(network: Network) {
     return this.getNetwork(network).provider;
   }
 
   getProviderEvent(network: Network) {
     return this.getNetwork(network).providerEvent;
+  }
+
+  getProviderVoting(network: Network) {
+    return this.getNetwork(network).providerVoting;
   }
 
   getSigner(network: Network, type: SignerType) {
@@ -206,6 +228,38 @@ export class SolanasService {
     return new anchor.EventParser(program.programId, program.coder);
   }
 
+  eventParserVoting(network: Network, idl: any) {
+    const program = new anchor.Program(idl as Voting, this.getProviderVoting(network) as anchor.AnchorProvider);
+    return new anchor.EventParser(program.programId, program.coder);
+  }
+
+  async votingInstruction(userAddress: string, vid: number, wid: number) {
+    const network = Network.solana;
+    const program = new anchor.Program(votingIDL as Voting, this.getProviderVoting(network) as anchor.AnchorProvider);
+    const operator = this.getSigner(network, SignerType.authority);
+    const userPubkey = new web3.PublicKey(userAddress);
+    try {
+      const transaction = new web3.Transaction();
+      const voteInstruction = await program.methods
+        .vote(new BN(vid), new BN(wid))
+        .accounts({
+          user: userPubkey,
+        })
+        .accountsPartial({
+          operator: operator.publicKey,
+        })
+        .instruction();
+      transaction.add(voteInstruction);
+      transaction.recentBlockhash = (await this.getConnectionVoting(network).getLatestBlockhash()).blockhash;
+      transaction.feePayer = userPubkey;
+      transaction.add(modifyComputeUnits).add(addPriorityFee);
+      transaction.partialSign(operator);
+      return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
+  }
+
   async getAllEventTransactions(
     network: Network,
     eventParser: anchor.EventParser,
@@ -218,7 +272,7 @@ export class SolanasService {
       mintAddress,
       {
         until,
-        limit,
+        limit: 10,
       },
       "confirmed",
     );
@@ -249,6 +303,153 @@ export class SolanasService {
       }
     }
 
+    return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
+  }
+
+  async getAllEventVotingTransactions(
+    network: Network,
+    eventParser: anchor.EventParser,
+    mintAddress: web3.PublicKey,
+    until?: string,
+    limit?: number,
+  ): Promise<TransferResponse> {
+    const allEvents: SolanaEvents[] = [];
+    const txs = await this.getConnectionConfirmedVoting(network).getSignaturesForAddress(
+      mintAddress,
+      {
+        until,
+        limit,
+      },
+      "confirmed",
+    );
+    if (!txs.length) return { signatureLatest: undefined, solanaEvents: [] };
+    const txSuccess = txs.filter((tx) => tx.err === null).map((tx) => tx.signature);
+    const transactions = await this.getConnectionConfirmedVoting(network).getParsedTransactions(txSuccess.reverse(), {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0,
+    });
+    for (const tx of transactions) {
+      if (tx && tx?.meta && tx?.meta?.logMessages) {
+        try {
+          const events = eventParser.parseLogs(tx?.meta?.logMessages);
+          for (const event of events) {
+            const { data, name } = event as any;
+            if (Object.values(EVENT_VOTING).includes(name)) {
+              allEvents.push({
+                event: event.name,
+                transactionHash: tx.transaction.signatures[0],
+                logIndex: name === EVENT_VOTING.VOTED ? 0 : 1,
+                blockTime: tx.blockTime || 0,
+                account: data?.account ? data?.account.toString() : "",
+                uid: data?.uid ? +data?.uid.toString() : 0,
+                sessionId: data?.session ? +data?.session.toString() : 0,
+              });
+            }
+          }
+        } catch {}
+      }
+    }
+
+    return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
+  }
+
+  async getAllEventTransferToken(
+    network: Network,
+    mintAddress: web3.PublicKey,
+    until?: string,
+    limit = 10,
+  ): Promise<TransferResponse> {
+    const allEvents: SolanaEvents[] = [];
+    let before;
+    const txs: any[] = [];
+    while (true) {
+      const tmpTxs = await this.getConnectionConfirmed(network).getSignaturesForAddress(
+        mintAddress,
+        {
+          before,
+          until,
+          limit,
+        },
+        "confirmed",
+      );
+      if (!tmpTxs.length || tmpTxs[tmpTxs.length - 1].signature === until) {
+        break;
+      }
+      before = tmpTxs[tmpTxs.length - 1].signature;
+      txs.push(...tmpTxs);
+    }
+    if (!txs.length) return { signatureLatest: undefined, solanaEvents: [] };
+    const txSuccess = txs
+      .reverse()
+      .filter((tx) => tx.err === null)
+      .map((tx) => tx.signature);
+    const round = Math.ceil(txSuccess.length / limit);
+    const transactions: any[] = [];
+    for (let i = 0; i < round; i++) {
+      const start = i * limit;
+      const end = start + limit > txSuccess.length ? txSuccess.length : start + limit;
+      const tmpTransactions = await this.getConnectionConfirmed(network).getParsedTransactions(
+        txSuccess.slice(start, end),
+        {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        },
+      );
+      transactions.push(...tmpTransactions);
+    }
+
+    for (const tx of transactions) {
+      if (
+        tx?.meta?.logMessages &&
+        (tx?.meta?.logMessages.join(",").match("ray_log") || tx?.meta?.logMessages.join(",").match("Swap")) &&
+        tx?.meta?.postTokenBalances &&
+        tx?.meta?.preTokenBalances
+      ) {
+        const postToken = tx?.meta?.postTokenBalances.find((a) => a.mint === mintAddress.toString());
+        const preToken = tx?.meta?.preTokenBalances.find((a) => a.mint === mintAddress.toString());
+        if (postToken && preToken) {
+          const postAmount = postToken?.uiTokenAmount?.uiAmount || 0;
+          const preAmount = preToken?.uiTokenAmount?.uiAmount || 0;
+          if (preAmount !== 0 && postAmount !== 0)
+            allEvents.push({
+              event: EVENT_TOKEN.SWAP,
+              transactionHash: tx.transaction.signatures[0],
+              logIndex: 1,
+              blockTime: tx.blockTime || 0,
+              amount: postAmount > preAmount ? postAmount - preAmount : preAmount - postAmount,
+              account: postToken?.owner || "",
+              is_buy: postAmount > preAmount ? true : false,
+            });
+        }
+      }
+
+      if (tx && tx?.transaction && tx?.transaction?.message?.instructions) {
+        for (const instruction of tx?.transaction?.message?.instructions as any[]) {
+          if (
+            instruction?.program === "spl-token" &&
+            instruction?.parsed &&
+            instruction?.parsed?.type === "transferChecked" &&
+            instruction?.parsed?.info?.mint === mintAddress.toString()
+          ) {
+            const { info } = instruction.parsed;
+            const [from, to] = await Promise.all([
+              this.getTokenAccountOwner(info?.source),
+              this.getTokenAccountOwner(info?.destination),
+            ]);
+
+            allEvents.push({
+              event: EVENT_TOKEN.TRANSFER,
+              transactionHash: tx.transaction.signatures[0],
+              logIndex: 1,
+              blockTime: tx.blockTime || 0,
+              amount: info?.tokenAmount?.amount || 0,
+              from,
+              to,
+            });
+          }
+        }
+      }
+    }
     return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
   }
 }

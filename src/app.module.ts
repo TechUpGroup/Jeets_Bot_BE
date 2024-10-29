@@ -15,14 +15,16 @@ import { JobModule } from "modules/_jobs/job.module";
 import { HistoriesModule } from "modules/histories/histories.module";
 import { VotingsModule } from "modules/votings/votings.module";
 import { MissionsModule } from "modules/missions/missions.module";
+import { HoldersModule } from "modules/holders/holders.module";
+import { CampaignsModule } from "modules/campaigns/campaigns.module";
 
 @Module({
   imports: [
     // global module
     ...(config.cron ? [ScheduleModule.forRoot()] : []),
     MongooseModule.forRoot(config.mongoose.uri, config.mongoose.options),
-    CacheModule.register({ isGlobal: true }),
-    // CacheModule.register(config.redisConfig),
+    // CacheModule.register({ isGlobal: true }),
+    CacheModule.register(config.redisConfig),
     I18nModule.forRoot({
       fallbackLanguage: config.fallbackLanguage,
       loaderOptions: {
@@ -40,6 +42,8 @@ import { MissionsModule } from "modules/missions/missions.module";
     HistoriesModule,
     MissionsModule,
     VotingsModule,
+    HoldersModule,
+    CampaignsModule
   ],
   providers: [
     { provide: APP_FILTER, useClass: I18nAllExceptionFilter },
