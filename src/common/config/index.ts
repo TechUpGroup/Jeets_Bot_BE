@@ -68,7 +68,7 @@ class Config {
       store: redisStore,
       url: this.getString("redis.uri"),
       prefix: `${this.getString("redis.prefix")}_${this.nodeEnv}_`,
-      ttl: 10,
+      ttl: 10 * 69 * 1000,
     } as any;
   }
 
@@ -93,6 +93,10 @@ class Config {
 
   get admin() {
     return this.getString("authAdmin");
+  }
+
+  get helius_url() {
+    return this.getString("helius_url");
   }
 
   get fallbackLanguage(): string {
@@ -185,8 +189,10 @@ class Config {
     ]
     const tokens = [
       {
-        mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
-        totalSupply: "1000000000000000"
+        mint: "DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o",
+        totalSupply: "1000000000000000",
+        symbol: "$MOON",
+        decimal: 6
       }
     ]
     return {

@@ -51,6 +51,10 @@ export class UsersService {
     return this.usersModel.create({ address, network });
   }
 
+  getAllUsers() {
+    return this.usersModel.find();
+  }
+
   async getUser(id: string) {
     const user = await this.usersModel.findById(id);
     if (!user) {
@@ -156,7 +160,7 @@ export class UsersService {
     return this.usersModel.updateOne({ _id: new Types.ObjectId(id) }, { $inc: { balance: amount } });
   }
 
-  bulkBalance(bulkUpdate: any[]) {
+  bulkWrite(bulkUpdate: any[]) {
     return this.usersModel.bulkWrite(bulkUpdate);
   }
 

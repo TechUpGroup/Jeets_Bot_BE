@@ -6,6 +6,7 @@ import { SyncEventHolderModule } from "./sync-holder/solana/sync-event.module";
 @Module({
   imports: [
     SyncEventModule, 
-    SyncEventHolderModule],
+    SyncEventHolderModule
+  ],
 })
 export class JobModule {}

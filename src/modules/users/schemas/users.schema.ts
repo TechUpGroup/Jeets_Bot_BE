@@ -26,13 +26,13 @@ export class Users {
   @Prop({ required: true, index: true, unique: true, default: generateRandomCode })
   code: string;
 
-  @Prop({ required: false, sparse: true })
+  @Prop({ required: false, unique: true, sparse: true })
   telegram_uid: number;
 
   @Prop({ required: false })
   telegram_username: string;
 
-  @Prop({ required: false, sparse: true })
+  @Prop({ required: false, unique: true, sparse: true })
   twitter_uid: string;
 
   @Prop({ required: false })
@@ -49,6 +49,9 @@ export class Users {
 
   @Prop({ required: true, default: false })
   banned: boolean;
+
+  @Prop({ required: true, default: 0 })
+  score: number;
 
   @Prop({ required: true, type: SchemaTypes.Decimal128, default: 0, min: 0  })
   balance: Types.Decimal128;

@@ -67,14 +67,13 @@ export class JobSyncEventVotingService {
           transaction_hash: transactionHash,
           network,
           log_index: logIndex,
-          block_number: blockTime,
+          timestamp: blockTime,
         };
         if (event.event === EVENT_VOTING.VOTED) {
           histories.push({
             ...history,
             contract_address,
             event: EVENT_VOTING.VOTED,
-            timestamp: blockTime,
           });
           bulkCreate.push({
             address: account,

@@ -9,8 +9,9 @@ import { SolanasService } from "./services/solana.service";
 import { TelegramService } from "./services/telegram.service";
 import { XModule } from "./x/x.module";
 import { RedisService } from "./services/redis.service";
+import { PricesService } from "./services/price.service";
 
-const providers = [RedisService, CacheService, S3Service, SolanasService, TelegramService];
+const providers = [RedisService, CacheService, S3Service, SolanasService, TelegramService, PricesService];
 const modules = [HttpModule, LogsModule, XModule];
 
 @Global()

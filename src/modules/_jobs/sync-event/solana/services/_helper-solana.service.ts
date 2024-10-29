@@ -62,6 +62,12 @@ export class HelperSolanaService {
           tx_synced,
         );
       }
+    } else {
+      res = await this.solanasService.getAllEventTransferToken(
+        network,
+        new web3.PublicKey(contract_address),
+        tx_synced,
+      );
     }
 
     const eventHashes = res.solanaEvents.map(

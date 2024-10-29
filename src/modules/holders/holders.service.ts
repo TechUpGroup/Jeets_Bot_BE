@@ -1,13 +1,9 @@
-import { PaginateModel } from "mongoose";
+import { PaginateModel, Types } from "mongoose";
 
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
-import { HOLDERS_MODEL, Holders, HoldersDocument } from "./schemas/holders.schema";
-import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
-import { EVENT } from "common/constants/event";
-import { INIT_LOCKED } from "common/constants/asset";
-import BigNumber from "bignumber.js";
+import { HOLDERS_MODEL, HoldersDocument } from "./schemas/holders.schema";
 import { Network } from "common/enums/network.enum";
 
 @Injectable()
@@ -27,5 +23,25 @@ export class HoldersService {
 
   holder(network: Network, mint: string, owner: string) {
     return this.holdersModel.findOne({ network, mint, owner }, { amount: 1 });
+  }
+
+  userHolders(network: Network, mints: string[], allAvailableAddresses: string[]) {
+    return this.holdersModel.find(
+      {
+        $and: [
+          { network },
+          { mint: { $in: mints } },
+          { owner: { $in: allAvailableAddresses } },
+        ],
+      },
+      { mint: 1, owner: 1, amount: 1 },
+    );
+  }
+
+  userHolderParticipateds(network: Network, mints: string[], addressParticipated: string[]) {
+    return this.holdersModel.find(
+      { network, mint: { $in: mints }, owner: { $in: addressParticipated } },
+      { mint: 1, owner: 1, amount: 1 },
+    );
   }
 }

@@ -65,14 +65,13 @@ export class JobSyncEventService {
           transaction_hash: transactionHash,
           network,
           log_index: logIndex,
-          block_number: blockTime,
+          timestamp: blockTime,
         };
         if (event.event === EVENT.OPERATOR_TRANSFER) {
           histories.push({
             ...history,
             contract_address,
             event: EVENT.OPERATOR_TRANSFER,
-            timestamp: blockTime,
             remain,
             transfer_amount,
           });
