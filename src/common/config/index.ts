@@ -189,7 +189,7 @@ class Config {
     ]
     const tokens = [
       {
-        mint: "DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o",
+        mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
         totalSupply: "1000000000000000",
         symbol: "$MOON",
         decimal: 6

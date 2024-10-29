@@ -88,6 +88,7 @@ export class CampaignsService {
       const data: any = {
         ...body,
         cid: currentCID,
+        is_origin: true
       };
       await this.contractService.createContracts(body.details);
       return this.campaignsModel.create(data);
