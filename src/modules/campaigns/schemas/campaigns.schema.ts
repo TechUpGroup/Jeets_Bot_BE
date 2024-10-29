@@ -30,7 +30,7 @@ export class Campaigns {
   @Prop({ required: false })
   name: string;
 
-  @Prop({ required: false, enum: CAMPAIGN_TYPE, default: CAMPAIGN_TYPE.HOLD_TOKEN })
+  @Prop({ required: false, enum: CAMPAIGN_TYPE, index: true, default: CAMPAIGN_TYPE.HOLD_TOKEN })
   type: CAMPAIGN_TYPE;
 
   @Prop({ required: false, type: [DetailsSchema], default: [] })

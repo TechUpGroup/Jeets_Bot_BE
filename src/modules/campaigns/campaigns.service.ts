@@ -13,15 +13,14 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { HoldersService } from "modules/holders/holders.service";
 import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
-import { PricesService } from "modules/_shared/services/price.service";
 import { UsersService } from "modules/users/users.service";
 import { ContractsService } from "modules/contracts/contracts.service";
-import { ContractName } from "common/constants/contract";
-import { LogsService } from "modules/logs/logs.service";
-import { TIMESTAM_HOUR, TIMESTAMP_DAY, TIMESTAMP_WEEK } from "common/constants/asset";
+import {  TIMESTAMP_DAY, TIMESTAMP_WEEK } from "common/constants/asset";
 import { EVENT_CAMPAGIN_HISTORIES } from "common/constants/event";
 import { LEADERBOARD_TYPE } from "common/enums/common";
 import { getCurrentMonth, getCurrentWeek, getCurrentYear } from "common/utils";
+import { CAMPAIGN_TYPE } from "common/enums/common";
+import { USER_AIRDROPS_MODEL, UserAirdrops, UserAirdropsDocument } from "./schemas/user-airdrops.schema";
 
 @Injectable()
 export class CampaignsService {
@@ -30,11 +29,11 @@ export class CampaignsService {
     private readonly campaignsModel: PaginateModel<CampaignsDocument>,
     @InjectModel(USER_CAMPAIGNS_MODEL)
     private readonly userCampaignsModel: PaginateModel<UserCampaignsDocument>,
+    @InjectModel(USER_AIRDROPS_MODEL)
+    private readonly userAirdropsModel: PaginateModel<UserAirdropsDocument>,
     private readonly contractService: ContractsService,
     private readonly holdersService: HoldersService,
-    private readonly pricesService: PricesService,
     private readonly usersService: UsersService,
-    private readonly logsService: LogsService,
   ) {
     void this.syncStartCampaign();
   }
@@ -46,7 +45,14 @@ export class CampaignsService {
     return this.userCampaignsModel.create(items);
   }
 
-  async getListCampaigns(query: PaginationDtoAndSortDto) {
+  saveUserAirdropHistories(items: UserAirdrops | UserAirdrops[]) {
+    if (Array.isArray(items)) {
+      return this.userAirdropsModel.insertMany(items);
+    }
+    return this.userAirdropsModel.create(items);
+  }
+
+  async getListCampaigns(user: UsersDocument, query: PaginationDtoAndSortDto) {
     const { limit, page, sortBy = "start_time", sortType = -1 } = query;
     const aggregate = this.campaignsModel.aggregate([
       {
@@ -77,7 +83,19 @@ export class CampaignsService {
         },
       },
     ]);
-    return this.campaignsModel.aggregatePaginate(aggregate, { limit, page });
+    const [airdrops, campaigns] = await Promise.all([
+      this.userAirdropsModel.find({ address: user.address }),
+      this.campaignsModel.aggregatePaginate(aggregate, { limit, page }),
+    ]);
+    return { airdrops, campaigns };
+  }
+
+  async claim(user: UsersDocument, id: string) {
+    const airdrop = await this.userAirdropsModel.findOne({ _id: id, status: false });
+    if (!airdrop) {
+      throw new BadRequestException("Airdrop not found or claimed")
+    }
+
   }
 
   async createNewCampaign(auth: string, body: CreateNewCampaignDto) {
@@ -390,16 +408,7 @@ export class CampaignsService {
   async syncEndCampaign() {
     if (this.isRunningEndCampaign) return;
     this.isRunningEndCampaign = true;
-    const [{ campaigns, userMintHolders, resParticipated }, allPriceTokens, tokens] = await Promise.all([
-      this.getUserParticipantedCampaign(),
-      this.pricesService.getAllPriceToken(),
-      this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana),
-    ]);
-    if (!allPriceTokens || !Object.keys(allPriceTokens).length || !tokens.length) {
-      this.isRunningEndCampaign = false;
-      this.logsService.createLog("syncEndCampaign", JSON.stringify(allPriceTokens) + "__" + JSON.stringify(tokens));
-      return;
-    }
+    const { campaigns, userMintHolders } = await this.getUserParticipantedCampaign();
     const bulkUpdate: any[] = [];
     const bulkUpdateCampaign: any[] = [];
     const bulkUpdateScore: any[] = [];
@@ -467,7 +476,7 @@ export class CampaignsService {
   async syncResetCampaign() {
     const timestamp = Date.now();
     const [campaigns, lastS] = await Promise.all([
-      this.campaignsModel.find({ is_origin: true }).sort({ cid: 1 }),
+      this.campaignsModel.find({ is_origin: true, type: CAMPAIGN_TYPE.HOLD_TOKEN }).sort({ cid: 1 }),
       this.campaignsModel.find().sort({ cid: -1 }).limit(1),
     ]);
     const currentCID = lastS.length ? lastS[0].cid : 0;
@@ -480,7 +489,7 @@ export class CampaignsService {
         details: campaign.details,
         score: campaign.score,
         start_time: timestamp,
-        end_time: timestamp + 2 * TIMESTAMP_DAY,
+        end_time: timestamp + 2 * TIMESTAMP_DAY - 1,
         status: true,
       });
     });
