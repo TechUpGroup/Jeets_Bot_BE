@@ -16,7 +16,7 @@ export class UserCampaigns {
   @Prop({ required: true, index: true })
   cid: number;
 
-  @Prop({ required: false, default: new Date() })
+  @Prop({ required: false, index: true, default: new Date() })
   timestamp: Date;
 
   @Prop({ required: false, type: [DetailsSchema], default: [] })

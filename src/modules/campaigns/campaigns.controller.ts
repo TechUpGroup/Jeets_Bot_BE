@@ -4,7 +4,7 @@ import { CampaignsService } from "./campaigns.service";
 import { Auth } from "common/decorators/http.decorators";
 import { User } from "common/decorators/user.decorator";
 import { UsersDocument } from "modules/users/schemas/users.schema";
-import { CreateNewCampaignDto } from "./dto/campaigns.dto";
+import { CreateNewCampaignDto, LeaderboardDto } from "./dto/campaigns.dto";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 
 @ApiTags("Campaigns")
@@ -21,6 +21,12 @@ export class CampaignsController {
   @Get("list")
   getListCampaigns(@Query() query: PaginationDtoAndSortDto) {
     return this.campaignsService.getListCampaigns(query);
+  }
+
+  @Auth()
+  @Get("leaderboard")
+  leaderboard(@User() user: UsersDocument,@Query() query: LeaderboardDto) {
+    return this.campaignsService.leaderboard(user, query);
   }
 
   @Post("create-new-campaign")

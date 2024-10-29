@@ -2,7 +2,8 @@ import { IsArray, IsEnum, IsNumber, IsString } from "class-validator";
 
 import { ApiProperty } from "@nestjs/swagger";
 import { ToArray } from "common/decorators/transforms.decorator";
-import { CAMPAIGN_TYPE } from "common/enums/common";
+import { CAMPAIGN_TYPE, LEADERBOARD_TYPE } from "common/enums/common";
+import { PaginationDto } from "common/dto/pagination.dto";
 
 export class Details {
   @ApiProperty()
@@ -62,4 +63,13 @@ export class CreateNewCampaignDto {
   })
   @IsNumber()
   end_time: number;
+}
+
+export class LeaderboardDto {
+  @ApiProperty({
+    enum: LEADERBOARD_TYPE,
+    default: LEADERBOARD_TYPE.WEEK
+  })
+  @IsEnum(LEADERBOARD_TYPE)
+  type: LEADERBOARD_TYPE;
 }

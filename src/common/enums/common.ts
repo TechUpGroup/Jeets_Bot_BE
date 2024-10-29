@@ -17,3 +17,9 @@ export enum X_ACTION_TYPE {
 export enum CAMPAIGN_TYPE {
   HOLD_TOKEN = "Hold Token"
 }
+
+export enum LEADERBOARD_TYPE {
+  WEEK = "W",
+  MONTH = "M",
+  YEAR = "Y",
+}
