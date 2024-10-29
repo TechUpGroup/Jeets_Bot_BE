@@ -326,7 +326,7 @@ export class CampaignsService {
       totalScore = allUsers[found].totalScore;
     }
     const datas = allUsers.slice(0, 50);
-    const addresses = datas.map((a) => a.address);
+    const addresses = datas.map((a) => a._id);
     const userInfos = await this.usersService.getUsersByAddresses(addresses);
     const topScores = datas.map((a, i) => {
       const u = userInfos.find((b) => b.address === a._id);
