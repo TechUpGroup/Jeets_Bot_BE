@@ -7,7 +7,7 @@ import { CAMPAIGNS_MODEL, CampaignsDocument } from "./schemas/campaigns.schema";
 import { USER_CAMPAIGNS_MODEL, UserCampaigns, UserCampaignsDocument } from "./schemas/user-campaigns.schema";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
-import { CreateNewCampaignDto } from "./dto/campaigns.dto";
+import { CreateNewCampaignDto, LeaderboardDto } from "./dto/campaigns.dto";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { HoldersService } from "modules/holders/holders.service";
@@ -20,6 +20,8 @@ import { ContractName } from "common/constants/contract";
 import { LogsService } from "modules/logs/logs.service";
 import { TIMESTAM_HOUR, TIMESTAMP_DAY, TIMESTAMP_WEEK } from "common/constants/asset";
 import { EVENT_CAMPAGIN_HISTORIES } from "common/constants/event";
+import { LEADERBOARD_TYPE } from "common/enums/common";
+import { getCurrentMonth, getCurrentWeek, getCurrentYear } from "common/utils";
 
 @Injectable()
 export class CampaignsService {
@@ -271,6 +273,79 @@ export class CampaignsService {
       userMintHolders[userHolder.owner].push(userHolder);
     }
     return { campaigns, userMintHolders, resParticipated };
+  }
+
+  async leaderboard(user: UsersDocument, query: LeaderboardDto) {
+    const { type } = query;
+    let startTime = new Date();
+    let endTime = new Date();
+    if (type === LEADERBOARD_TYPE.WEEK) {
+      const time = getCurrentWeek();
+      startTime = time.startTime;
+      endTime = time.endTime;
+    }
+    if (type === LEADERBOARD_TYPE.MONTH) {
+      const time = getCurrentMonth();
+      startTime = time.startTime;
+      endTime = time.endTime;
+    }
+    if (type === LEADERBOARD_TYPE.YEAR) {
+      const time = getCurrentYear();
+      startTime = time.startTime;
+      endTime = time.endTime;
+    }
+    const allUsers = await this.userCampaignsModel.aggregate([
+      {
+        $match: {
+          $and: [{ timestamp: { $gte: startTime } }, { timestamp: { $lte: endTime } }],
+        },
+      },
+      {
+        $group: {
+          _id: "$address",
+          totalScore: { $sum: "$score" },
+        },
+      },
+      {
+        $sort: {
+          totalScore: -1,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          totalScore: 1,
+        },
+      },
+    ]);
+    let userindex = allUsers.length;
+    let totalScore = 0;
+    const found = allUsers.findIndex((u) => u._id === user.address);
+    if (found !== -1) {
+      userindex = found + 1;
+      totalScore = allUsers[found].totalScore;
+    }
+    const datas = allUsers.slice(0, 50);
+    const addresses = datas.map((a) => a.address);
+    const userInfos = await this.usersService.getUsersByAddresses(addresses);
+    const topScores = datas.map((a, i) => {
+      const u = userInfos.find((b) => b.address === a._id);
+      return {
+        twitter_username: u?.twitter_username,
+        twitter_avatar: u?.twitter_avatar,
+        totalScore: a.totalScore,
+        rank: i + 1,
+      };
+    });
+    return {
+      user: {
+        twitter_username: user.twitter_username,
+        twitter_avatar: user?.twitter_avatar,
+        totalScore,
+        rank: userindex,
+      },
+      topScores,
+    };
   }
 
   private isRunningStartCampaign = false;

@@ -182,3 +182,47 @@ export const diffDay = (date1: Date, date2: Date) => {
 
   return diffInMilliseconds / (1000 * 60 * 60 * 24);
 };
+
+export const getCurrentWeek = () => {
+  const currentDate = new Date();
+  const firstDayOfWeek = new Date(currentDate);
+  firstDayOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+  firstDayOfWeek.setHours(0, 0, 0, 0);
+
+  const lastDayOfWeek = new Date(firstDayOfWeek);
+  lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+  lastDayOfWeek.setHours(23, 59, 59, 999);
+
+  return {
+    startTime: firstDayOfWeek,
+    endTime: lastDayOfWeek
+  };
+}
+
+export const getCurrentMonth = () => {
+  const currentDate = new Date();
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  firstDayOfMonth.setHours(0, 0, 0, 0);
+
+  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  lastDayOfMonth.setHours(23, 59, 59, 999);
+
+  return {
+    startTime: firstDayOfMonth,
+    endTime: lastDayOfMonth
+  };
+}
+
+export const getCurrentYear =() => {
+  const currentDate = new Date();
+  const firstDayOfYear = new Date(currentDate.getFullYear(), 0, 1);
+  firstDayOfYear.setHours(0, 0, 0, 0);
+
+  const lastDayOfYear = new Date(currentDate.getFullYear(), 11, 31);
+  lastDayOfYear.setHours(23, 59, 59, 999);
+
+  return {
+    startTime: firstDayOfYear,
+    endTime: lastDayOfYear
+  };
+}
