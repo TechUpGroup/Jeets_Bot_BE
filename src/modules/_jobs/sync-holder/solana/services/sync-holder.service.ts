@@ -114,7 +114,7 @@ export class JobSyncHolderService {
             filter: {
               network,
               owner: holder.owner,
-              mint: holder.mint,
+              mint,
             },
             update: {
               last_updated: timestamp.getTime(),
@@ -131,7 +131,7 @@ export class JobSyncHolderService {
           filter: {
             network,
             owner: holder.owner,
-            mint: holder.mint,
+            mint,
           },
           update: {
             network,
