@@ -315,14 +315,12 @@ export class CampaignsService {
   async syncEndCampaign() {
     if (this.isRunningEndCampaign) return;
     this.isRunningEndCampaign = true;
-    const [{ campaigns, userMintHolders, resParticipated }, allPriceTokens, tokens] = await Promise.all([
+    const [{ campaigns, userMintHolders }, tokens] = await Promise.all([
       this.getUserParticipantedCampaign(),
-      this.pricesService.getAllPriceToken(),
       this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana),
     ]);
-    if (!allPriceTokens || !Object.keys(allPriceTokens).length || !tokens.length) {
+    if (!tokens.length) {
       this.isRunningEndCampaign = false;
-      this.logsService.createLog("syncEndCampaign", JSON.stringify(allPriceTokens) + "__" + JSON.stringify(tokens));
       return;
     }
     const bulkUpdate: any[] = [];
