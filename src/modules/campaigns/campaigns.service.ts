@@ -385,8 +385,7 @@ export class CampaignsService {
     this.isRunningEndCampaign = false;
   }
 
-  // @Cron("0 0 * * 1", { name: "syncResetCampaign" })
-  @Cron("0 0 */2 * *", { name: "syncResetCampaign" })
+  @Cron("0 0 * * 1", { name: "syncResetCampaign" })
   async syncResetCampaign() {
     const timestamp = Date.now();
     const [campaigns, lastS] = await Promise.all([
@@ -403,7 +402,7 @@ export class CampaignsService {
         details: campaign.details,
         score: campaign.score,
         start_time: timestamp,
-        end_time: timestamp + 2 * TIMESTAMP_DAY,
+        end_time: timestamp + TIMESTAMP_WEEK - 1,
         status: true,
       });
     });
