@@ -1,12 +1,11 @@
 import { Options } from "common/config/mongoose.config";
-import { Document, SchemaTypes, Types } from "mongoose";
+import { Document } from "mongoose";
 
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Details, DetailsSchema } from "./campaigns.schema";
-import { EVENT_CAMPAGIN_HISTORIES, EVENT_TOKEN } from "common/constants/event";
+import { EVENT_CAMPAGIN_HISTORIES } from "common/constants/event";
 
 export const USER_CAMPAIGNS_MODEL = "user-campaigns";
-export const USER_CAMPAIGN_HISTORIES_MODEL = "user-campaign-histories";
 
 @Schema(Options)
 export class UserCampaigns {

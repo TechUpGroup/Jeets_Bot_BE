@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Post, Query, Param } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { CampaignsService } from "./campaigns.service";
 import { Auth } from "common/decorators/http.decorators";
@@ -14,13 +14,20 @@ export class CampaignsController {
 
   @Auth()
   @Get("histories")
-  getCampaignHistories(@User() user: UsersDocument,@Query() query: PaginationDtoAndSortDto) {
+  getCampaignHistories(@User() user: UsersDocument, @Query() query: PaginationDtoAndSortDto) {
     return this.campaignsService.getCampaignHistories(user, query);
   }
 
+  @Auth()
   @Get("list")
-  getListCampaigns(@Query() query: PaginationDtoAndSortDto) {
-    return this.campaignsService.getListCampaigns(query);
+  getListCampaigns(@User() user: UsersDocument, @Query() query: PaginationDtoAndSortDto) {
+    return this.campaignsService.getListCampaigns(user, query);
+  }
+
+  @Auth()
+  @Get("claim/:id")
+  claim(@User() user: UsersDocument, @Param("id") id: string ) {
+    return this.campaignsService.claim(user, id);
   }
 
   @Auth()

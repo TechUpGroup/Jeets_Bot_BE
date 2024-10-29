@@ -9,6 +9,7 @@ import { UsersModule } from "modules/users/users.module";
 import { WHITELIST_MODEL, WhitelistsSchema } from "./schemas/whitelist.schema";
 import { MissionsModule } from "modules/missions/missions.module";
 import { HoldersModule } from "modules/holders/holders.module";
+import { CampaignsModule } from "modules/campaigns/campaigns.module";
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { HoldersModule } from "modules/holders/holders.module";
     forwardRef(() => UsersModule),
     forwardRef(() => MissionsModule),
     HoldersModule,
+    CampaignsModule
   ],
   providers: [VotingsService],
   controllers: [VotingsController],

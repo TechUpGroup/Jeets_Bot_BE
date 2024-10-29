@@ -9,11 +9,14 @@ import { UsersModule } from "modules/users/users.module";
 import { MissionsModule } from "modules/missions/missions.module";
 import { HoldersModule } from "modules/holders/holders.module";
 import { ContractsModule } from "modules/contracts/contracts.module";
+import { USER_AIRDROPS_MODEL, UserAirdropsSchema } from "./schemas/user-airdrops.schema";
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: CAMPAIGNS_MODEL, schema: CampaignsSchema }]),
     MongooseModule.forFeature([{ name: USER_CAMPAIGNS_MODEL, schema: UserCampaignsSchema }]),
+    MongooseModule.forFeature([{ name: USER_CAMPAIGNS_MODEL, schema: UserCampaignsSchema }]),
+    MongooseModule.forFeature([{ name: USER_AIRDROPS_MODEL, schema: UserAirdropsSchema }]),
     forwardRef(() => UsersModule),
     forwardRef(() => MissionsModule),
     forwardRef(() => ContractsModule),

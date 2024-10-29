@@ -10,7 +10,7 @@ import {
   VOTING_DASHBOARDS_MODEL,
   VotingDashboardsDocument,
 } from "./schemas/user-votings.schema";
-import { USERS_MODEL, UsersDocument } from "modules/users/schemas/users.schema";
+import { UsersDocument } from "modules/users/schemas/users.schema";
 import { WHITELIST_MODEL, WhitelistsDocument } from "./schemas/whitelist.schema";
 import config from "common/config";
 import { CreateDto, CreateSessionVoteDto } from "./dto/votings.dto";
@@ -23,6 +23,10 @@ import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
 import axios from "axios";
 import { LogsService } from "modules/logs/logs.service";
+import { CampaignsService } from "modules/campaigns/campaigns.service";
+import { ContractName } from "common/constants/contract";
+import { ContractsService } from "modules/contracts/contracts.service";
+import { AIRDROP_AMOUNT } from "common/constants/asset";
 
 @Injectable()
 export class VotingsService {
@@ -41,6 +45,8 @@ export class VotingsService {
     private readonly solanasService: SolanasService,
     private readonly holdersService: HoldersService,
     private readonly logsService: LogsService,
+    private readonly campaignsService: CampaignsService,
+    private readonly contractsService: ContractsService,
   ) {}
 
   async createVote(user: UsersDocument, wid: number) {
@@ -256,7 +262,7 @@ export class VotingsService {
             {
               $match: {
                 vid: sessionYesterday.vid,
-                count: { $gt: 0 }
+                count: { $gt: 0 },
               },
             },
             {
@@ -312,9 +318,15 @@ export class VotingsService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: "syncWinnerVotings" })
   async syncWinnerVotings() {
-    const listWinners = await this.getListWinnerYesterday();
+    const [listWinners, tokens] = await Promise.all([
+      this.getListWinnerYesterday(),
+      this.contractsService.getAllContractsByName(ContractName.TOKEN, Network.solana),
+    ]);
+    const token = tokens.find((a) => a.symbol === "$MOON");
+    if (!token) return;
     const bulkUpdate: any[] = [];
     const datas: any[] = [];
+    const bulkCreate: any[] = [];
     for (const winner of listWinners) {
       bulkUpdate.push({
         updateOne: {
@@ -327,9 +339,21 @@ export class VotingsService {
         },
       });
       datas.push({ address: winner.wl.address, x_account: winner.wl.name });
+      bulkCreate.push({
+        address: winner.wl.address,
+        vid: winner.vid,
+        detail: {
+          mint: token.contract_address,
+          amount: AIRDROP_AMOUNT,
+          symbol: token?.symbol || "",
+          decimal: token?.decimal || "",
+        },
+        status: false,
+      });
     }
     await Promise.all([
       bulkUpdate.length ? this.votingsModel.bulkWrite(bulkUpdate) : undefined,
+      bulkCreate.length ? this.campaignsService.saveUserAirdropHistories(bulkCreate) : undefined,
       datas.length ? this.addSourceAddressToTracking(datas) : undefined,
     ]);
   }
@@ -342,11 +366,11 @@ export class VotingsService {
       };
       await axios.post(`${config.server.tracking_url}/wallet/create/srcaddresses`, body, {
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
     } catch (e) {
-      console.log(e)
+      console.log(e);
       try {
         this.logsService.createLog("addSourceAddressToTracking", e);
       } catch {}
