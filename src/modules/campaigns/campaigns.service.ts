@@ -18,7 +18,7 @@ import { UsersService } from "modules/users/users.service";
 import { ContractsService } from "modules/contracts/contracts.service";
 import { ContractName } from "common/constants/contract";
 import { LogsService } from "modules/logs/logs.service";
-import { TIMESTAM_HOUR, TIMESTAMP_WEEK } from "common/constants/asset";
+import { TIMESTAM_HOUR, TIMESTAMP_DAY, TIMESTAMP_WEEK } from "common/constants/asset";
 import { EVENT_CAMPAGIN_HISTORIES } from "common/constants/event";
 
 @Injectable()
@@ -387,7 +387,7 @@ export class CampaignsService {
   }
 
   // @Cron("0 0 * * 1", { name: "syncResetCampaign" })
-  @Cron(CronExpression.EVERY_6_HOURS, { name: "syncResetCampaign" })
+  @Cron("0 0 */2 * *", { name: "syncResetCampaign" })
   async syncResetCampaign() {
     const timestamp = Date.now();
     const [campaigns, lastS] = await Promise.all([
@@ -404,7 +404,7 @@ export class CampaignsService {
         details: campaign.details,
         score: campaign.score,
         start_time: timestamp,
-        end_time: timestamp + 6 * TIMESTAM_HOUR,
+        end_time: timestamp + 2 * TIMESTAMP_DAY,
         status: true,
       });
     });
