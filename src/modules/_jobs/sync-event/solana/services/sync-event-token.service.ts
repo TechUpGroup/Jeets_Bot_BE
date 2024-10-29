@@ -30,21 +30,24 @@ export class JobSyncEventTokenService {
 
   @Cron(CronExpression.EVERY_10_SECONDS)
   private async start() {
-    const contract = await this.contractService.getContractByName(ContractName.TOKEN, Network.solana);
-    if (!contract) return;
-    if (this.isRunning[contract.name]) return;
-    this.isRunning[contract.name] = true;
-    try {
-      await this.helperService.excuteSync({
-        contract,
-        acceptEvents,
-        eventParser: undefined,
-        callback: this.handleEvents,
-      });
-    } catch (err) {
-      this.logsService.createLog("JobSyncEventTokenService -> start: ", err);
-    } finally {
-      delete this.isRunning[contract.name];
+    const contracts = await this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana);
+    if (!contracts.length) return;
+    for (const contract of contracts) {
+      const mint = contract.contract_address;
+      if (this.isRunning[mint]) return;
+      this.isRunning[mint] = true;
+      try {
+        await this.helperService.excuteSync({
+          contract,
+          acceptEvents,
+          eventParser: undefined,
+          callback: this.handleEvents,
+        });
+      } catch (err) {
+        this.logsService.createLog("JobSyncEventTokenService -> start: ", err);
+      } finally {
+        delete this.isRunning[mint];
+      }
     }
   }
 
