@@ -16,9 +16,7 @@ import { RedisService } from "modules/_shared/services/redis.service";
 import { REDIS_KEY } from "common/constants/redis";
 import { VotingsService } from "modules/votings/votings.service";
 import { UsersService } from "modules/users/users.service";
-import { Network } from "common/enums/network.enum";
 import { HoldersService } from "modules/holders/holders.service";
-import BigNumber from "bignumber.js";
 
 @Injectable()
 export class MissionsService {
@@ -120,10 +118,7 @@ export class MissionsService {
       if (check) {
         const { ratio } = await this.getUserMissions(user);
         if (ratio + mission.ratio >= 100) {
-          const holder = await this.holdersService.holder(Network.solana, config.getContract().tokens[0].mint, user.address);
-          if (holder && BigNumber(holder.amount.toString()).gte("2000000000")) {
-            checkVoting = true;
-          }
+          checkVoting = await this.holdersService.checkHolder(user);
         }
       }
       await Promise.all([

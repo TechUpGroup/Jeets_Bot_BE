@@ -12,6 +12,9 @@ export class UserAirdrops {
   address: string;
 
   @Prop({ required: true, index: true })
+  nonce: string;
+
+  @Prop({ required: true, index: true })
   vid: number;
 
   @Prop({ required: false, default: new Date() })

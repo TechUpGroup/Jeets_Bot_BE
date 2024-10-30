@@ -73,3 +73,23 @@ export class LeaderboardDto {
   @IsEnum(LEADERBOARD_TYPE)
   type: LEADERBOARD_TYPE;
 }
+
+export class CreateNewAirdropDto {
+  @ApiProperty({
+    default: 0
+  })
+  @IsNumber()
+  rank: number;
+
+  @ApiProperty()
+  @IsArray()
+  @ToArray()
+  details: Details[];
+}
+
+export class UpdateAirdropDto {
+  @ApiProperty()
+  @IsArray()
+  @ToArray()
+  details: Details[];
+}

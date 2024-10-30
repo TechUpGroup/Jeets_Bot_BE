@@ -1,6 +1,7 @@
 export enum ContractName {
     POOL = "pool",
     VOTE = "vote",
-    TOKEN = "token"
+    TOKEN = "token",
+    AIRDROP = "airdrop"
   }
   

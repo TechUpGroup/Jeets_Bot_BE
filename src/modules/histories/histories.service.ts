@@ -4,6 +4,9 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
 import {
+  AIRDROP_HISTORIES_MODEL,
+  AirdropHistories,
+  AirdropHistoriesDocument,
   HISTORIES_MODEL,
   Histories,
   HistoriesDocument,
@@ -28,6 +31,8 @@ export class HistoriesService {
     private readonly votingHistoriesModel: PaginateModel<VotingHistoriesDocument>,
     @InjectModel(TOKEN_HISTORIES_MODEL)
     private readonly tokenHistoriesModel: PaginateModel<TokenHistoriesDocument>,
+    @InjectModel(AIRDROP_HISTORIES_MODEL)
+    private readonly airdropHistoriesModel: PaginateModel<AirdropHistoriesDocument>,
   ) {}
 
   async findTransactionTokenHashExists(hashes: string[]) {
@@ -60,6 +65,22 @@ export class HistoriesService {
       return this.votingHistoriesModel.insertMany(items);
     }
     return this.votingHistoriesModel.create(items);
+  }
+
+  async findTransactionAirdropHashExists(hashes: string[]) {
+    if (!hashes.length) return [];
+    const result = await this.airdropHistoriesModel.find(
+      { transaction_hash_index: { $in: hashes } },
+      { transaction_hash_index: 1 },
+    );
+    return result.map((o) => o.transaction_hash_index as string);
+  }
+
+  saveAirdropHistories(items: AirdropHistories | AirdropHistories[]) {
+    if (Array.isArray(items)) {
+      return this.airdropHistoriesModel.insertMany(items);
+    }
+    return this.airdropHistoriesModel.create(items);
   }
 
   async findTransactionHashExists(hashes: string[]) {

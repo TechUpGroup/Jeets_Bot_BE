@@ -10,6 +10,7 @@ import { Contracts, CONTRACTS_MODEL, ContractsDocument } from "./schemas/contrac
 import { ContractName } from "common/constants/contract";
 import { Detail } from "aws-sdk/clients/forecastservice";
 import { Details } from "modules/campaigns/dto/campaigns.dto";
+import { ContractsDto } from "./dto/contracts.dto";
 
 @Injectable()
 export class ContractsService {
@@ -48,6 +49,26 @@ export class ContractsService {
     return await this.contractModel.find(query);
   }
 
+  async getContractInfosByName(name: ContractName, network?: Network) {
+    const res = await this.getAllContractsByName(name);
+    const holdRequires: any = {};
+    const symbols: any = {};
+    res.forEach((a) => {
+      holdRequires[a.contract_address] = a.require_hold;
+      symbols[a.contract_address] = a.symbol;
+    });
+    return { holdRequires, symbols };
+  }
+
+  async getListHoldTokenRequire(query: ContractsDto) {
+    const { mint } = query;
+    const match: any = { name: ContractName.TOKEN };
+    if (mint) {
+      match.contract_address = mint;
+    }
+    return this.contractModel.find(match, { contract_address: 1, symbol: 1, decimal: 1, require_hold: 1 });
+  }
+
   async getContractByNames(names: ContractName[], network?: Network) {
     const query: any = { name: { $in: names } };
     if (network) {
@@ -69,7 +90,7 @@ export class ContractsService {
     });
   }
 
- async createContracts(datas: Details[]) {
+  async createContracts(datas: Details[]) {
     {
       const contractCreate: {
         contract_address: string;
@@ -129,6 +150,14 @@ export class ContractsService {
             contract_address: address,
             tx_synced: undefined,
             name: ContractName.VOTE,
+            network,
+          });
+        }
+        for (const address of config.getContract().airdrops) {
+          contractCreate.push({
+            contract_address: address,
+            tx_synced: undefined,
+            name: ContractName.AIRDROP,
             network,
           });
         }

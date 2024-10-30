@@ -8,6 +8,7 @@ import { VotingsModule } from "modules/votings/votings.module";
 import { JobSyncEventVotingService } from "./services/sync-event-voting.service";
 import { CampaignsModule } from "modules/campaigns/campaigns.module";
 import { JobSyncEventTokenService } from "./services/sync-event-token.service";
+import { JobSyncEventAirdropService } from "./services/sync-event-airdrop.service";
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { JobSyncEventTokenService } from "./services/sync-event-token.service";
     HelperSolanaService,
     JobSyncEventService,
     JobSyncEventVotingService,
-    JobSyncEventTokenService
+    JobSyncEventTokenService,
+    JobSyncEventAirdropService,
   ],
 })
 export class SyncEventSolanaModule {}
