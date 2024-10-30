@@ -8,7 +8,6 @@ import { Network } from "common/enums/network.enum";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import { ContractName } from "common/constants/contract";
 import BigNumber from "bignumber.js";
-import { THRESHOLD_HOLD_TOKEN } from "common/constants/asset";
 import { ContractsService } from "modules/contracts/contracts.service";
 
 @Injectable()
@@ -34,11 +33,7 @@ export class HoldersService {
   userHolders(network: Network, mints: string[], allAvailableAddresses: string[]) {
     return this.holdersModel.find(
       {
-        $and: [
-          { network },
-          { mint: { $in: mints } },
-          { owner: { $in: allAvailableAddresses } },
-        ],
+        $and: [{ network }, { mint: { $in: mints } }, { owner: { $in: allAvailableAddresses } }],
       },
       { mint: 1, owner: 1, amount: 1 },
     );
@@ -52,37 +47,19 @@ export class HoldersService {
   }
 
   userHolder(user: UsersDocument) {
-    return this.holdersModel.find(
-      { network: Network.solana, owner: user.address },
-      { mint: 1, owner: 1, amount: 1 },
-    );
-  }
-
-  async holderValid(user: UsersDocument) {
-    const [holders, { holdRequires, symbols }] = await Promise.all([
-      this.userHolder(user),
-      this.contractsService.getContractInfosByName(ContractName.TOKEN),
-    ]);
-    for (const holder of holders) {
-      if (BigNumber(holder.amount.toString()).gte(holdRequires[holder.mint])) {
-        return {
-          mint: holder.mint,
-          symbol: symbols[holder.mint],
-          holdRequire: holdRequires[holder.mint]
-        };
-      }
-    }
-    return;
+    return this.holdersModel.find({ network: Network.solana, owner: user.address }, { mint: 1, owner: 1, amount: 1 });
   }
 
   async checkHolder(user: UsersDocument) {
-    const [holders, { holdRequires }] = await Promise.all([
-      this.userHolder(user),
-      this.contractsService.getContractInfosByName(ContractName.TOKEN),
-    ]);
-    if (!holders.length || holders.every(a => BigNumber(a.amount.toString()).lt(holdRequires[a.mint]))) {
-      return false;
+    const holders = await this.userHolder(user);
+    if (user?.partner && user.partner?.mint) {
+      const found = holders.find(
+        (a) => a.mint === user.partner.mint && BigNumber(a.amount.toString()).gte(user.partner.amount.toString()),
+      );
+      if (found) {
+        return true;
+      }
     }
-    return true;
+    return false;
   }
 }

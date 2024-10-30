@@ -1,9 +1,10 @@
-import { Options, validateAddress } from "common/config/mongoose.config";
-import { Document, SchemaTypes, Types } from "mongoose";
+import { Options,  } from "common/config/mongoose.config";
+import { Document } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Network } from "common/enums/network.enum";
 import { generateRandomCode } from "common/utils";
+import { Details, DetailsSchema } from "modules/campaigns/schemas/campaigns.schema";
 
 export const USERS_MODEL = "users";
 
@@ -53,8 +54,8 @@ export class Users {
   @Prop({ required: true, default: 0 })
   score: number;
 
-  @Prop({ required: true, type: SchemaTypes.Decimal128, default: 0, min: 0  })
-  balance: Types.Decimal128;
+  @Prop({ required: false, type: DetailsSchema  })
+  partner: Details;
 }
 export type UsersDocument = Users & Document;
 export const UsersSchema = SchemaFactory.createForClass(Users);
