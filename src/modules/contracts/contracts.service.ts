@@ -33,6 +33,10 @@ export class ContractsService {
     return !!(await this.contractModel.findOne({ contract_address, network }));
   }
 
+  getContractInfo(contract_address: string, network: Network) {
+    return  this.contractModel.findOne({ contract_address, network });
+  }
+
   async getContractByName(name: ContractName, network?: Network) {
     const query: any = { name };
     if (network) {

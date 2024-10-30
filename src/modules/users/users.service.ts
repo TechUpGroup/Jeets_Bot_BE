@@ -9,6 +9,7 @@ import { Network } from "common/enums/network.enum";
 import { telegramCheckAuth } from "common/utils";
 import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
 import { XService } from "modules/_shared/x/x.service";
+import { ContractsService } from "modules/contracts/contracts.service";
 
 @Injectable()
 export class UsersService {
@@ -16,6 +17,7 @@ export class UsersService {
     @InjectModel(USERS_MODEL)
     private readonly usersModel: PaginateModel<UsersDocument>,
     private readonly xService: XService,
+    private readonly contractsService: ContractsService,
   ) {}
 
   async queryUsers(filter: any, options: any) {
@@ -160,6 +162,24 @@ export class UsersService {
     return this.usersModel.updateOne({ _id: new Types.ObjectId(id) }, { $inc: { balance: amount } });
   }
 
+  async updatePartner(user: UsersDocument, mint: string) {
+    const res = await this.contractsService.getContractInfo(mint, Network.solana);
+    if (res) {
+      return this.usersModel.findOneAndUpdate(
+        { _id: new Types.ObjectId(user._id) },
+        {
+          partner: {
+            mint,
+            symbol: res.symbol,
+            decimal: res.decimal,
+            amount: (res.require_hold || "0").toString(),
+          }
+        },
+        { new: true },
+      );
+    }
+  }
+
   bulkWrite(bulkUpdate: any[]) {
     return this.usersModel.bulkWrite(bulkUpdate);
   }
@@ -186,7 +206,7 @@ export class UsersService {
       throw new BadRequestException("Hash not matched or expired");
     }
 
-    if(await this.isSocialTaken({ telegram_uid: userInfo.id })) {
+    if (await this.isSocialTaken({ telegram_uid: userInfo.id })) {
       throw new BadRequestException("This telegram user already connected to other user.");
     }
 

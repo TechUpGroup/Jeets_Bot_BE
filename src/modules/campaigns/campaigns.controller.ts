@@ -25,7 +25,7 @@ export class CampaignsController {
   }
 
   @Auth()
-  @Get("claim/:id")
+  @Post("airdrop/claim/:id")
   claim(@User() user: UsersDocument, @Param("id") id: string ) {
     return this.campaignsService.claim(user, id);
   }

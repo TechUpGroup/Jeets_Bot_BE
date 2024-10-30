@@ -1,23 +1,34 @@
 import { Auth } from "common/decorators/http.decorators";
 import { User } from "common/decorators/user.decorator";
 
-import { Body, Controller, Get, Post, Redirect } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Redirect } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { UsersDocument } from "./schemas/users.schema";
 import { UsersService } from "./users.service";
 import config from "common/config";
 import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
+import { HoldersService } from "modules/holders/holders.service";
 
 @ApiTags("Users")
 @Controller("users")
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly holdersService: HoldersService,
+    ) {}
 
   @Auth()
   @Get("me")
   async getMe(@User() user: UsersDocument) {
-    return user;
+    const is_hold_token = await this.holdersService.checkHolder(user);
+    return { ...user, is_hold_token };
+  }
+
+  @Auth()
+  @Put("update-partner/:mint")
+  async updatePartner(@User() user: UsersDocument, @Param("mint") mint: string) {
+    return this.usersService.updatePartner(user, mint);
   }
 
   @Get("telegram/start")
