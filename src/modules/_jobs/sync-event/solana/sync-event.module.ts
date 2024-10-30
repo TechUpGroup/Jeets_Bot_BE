@@ -19,8 +19,8 @@ import { JobSyncEventTokenService } from "./services/sync-event-token.service";
   ],
   providers: [
     HelperSolanaService,
-    // JobSyncEventService,
-    // JobSyncEventVotingService,
+    JobSyncEventService,
+    JobSyncEventVotingService,
     JobSyncEventTokenService
   ],
 })

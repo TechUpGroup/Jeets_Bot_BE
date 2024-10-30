@@ -12,6 +12,7 @@ import { common, votingIDL } from "common/idl/pool";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
 import { ScJeetsSol, Voting } from "common/idl/jeets";
+import { Cron, CronExpression } from "@nestjs/schedule";
 
 interface SolanaProvider {
   connection: web3.Connection;
@@ -105,7 +106,7 @@ export class SolanasService {
     }
   }
 
-  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async syncTransferToken() {
     const network = Network.solana;
     for (const address of config.getContract().pools) {
