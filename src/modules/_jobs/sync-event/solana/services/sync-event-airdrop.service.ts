@@ -10,7 +10,7 @@ import { HistoriesService } from "modules/histories/histories.service";
 import { HelperSolanaService } from "./_helper-solana.service";
 import { SolanasService } from "modules/_shared/services/solana.service";
 import { Network } from "common/enums/network.enum";
-import { votingIDL } from "common/idl/pool";
+import { vaultIDL } from "common/idl/pool";
 import { IEventParams } from "../interfaces/helper-solana.interface";
 import { CampaignsService } from "modules/campaigns/campaigns.service";
 const acceptEvents = [EVENT_AIRDROP.CLAIM];
@@ -35,7 +35,7 @@ export class JobSyncEventAirdropService {
       if (this.isRunning[contract.contract_address]) continue;
       this.isRunning[contract.contract_address] = true;
       try {
-        const eventParser = this.solanasService.eventParserAirdrop(Network.solana, votingIDL);
+        const eventParser = this.solanasService.eventParserAirdrop(Network.solana, vaultIDL);
         await this.helperService.excuteSync({
           contract,
           acceptEvents,
@@ -62,7 +62,7 @@ export class JobSyncEventAirdropService {
       const histories: any[] = [];
       const bulkUpdate: any[] = [];
       for (const event of events) {
-        const { blockTime, transactionHash, logIndex, nonce, account } = event;
+        const { blockTime, transactionHash, logIndex, nonce } = event;
         const history = {
           transaction_hash: transactionHash,
           network,
