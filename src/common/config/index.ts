@@ -189,14 +189,14 @@ class Config {
     ]
     const tokens = [
       {
-        mint: "DHubdLtghHMXsU2e4s5LLERXyvTY71B53tQ8tQkBYL9o",
+        mint: "FZEWxnkkVM4Eqvrt8Shipj6MJsnGptZNgM7bZwPmpump",
         totalSupply: "1000000000000000",
         symbol: "🌕",
         decimal: 6
       }
     ]
     const airdrops = [
-      "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG"
+      ""
     ]
     return {
       pools,
