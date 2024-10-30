@@ -19,6 +19,7 @@ interface SolanaProvider {
   connectionConfirmed: web3.Connection;
   connectionVoting: web3.Connection;
   connectionConfirmedVoting: web3.Connection;
+  connectionAirdrop: web3.Connection;
   connectionConfirmedAirdrop: web3.Connection;
   signers: Map<SignerType, web3.Keypair>;
   provider: AnchorProvider;
@@ -68,10 +69,12 @@ export class SolanasService {
     for (const network of allNetworks) {
       const connection: web3.Connection = new web3.Connection(config.listRPC[0], "recent");
       const connectionConfirmed: web3.Connection = new web3.Connection(config.listRPC[1], "confirmed");
-      const connectionVoting: web3.Connection = new web3.Connection(config.listRPC[2], "recent");
 
+      const connectionVoting: web3.Connection = new web3.Connection(config.listRPC[2], "recent");
       const connectionConfirmedVoting: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
-      const connectionConfirmedAirdrop: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
+
+      const connectionAirdrop: web3.Connection = new web3.Connection(config.listRPC[3], "recent");
+      const connectionConfirmedAirdrop: web3.Connection = new web3.Connection(config.listRPC[3], "confirmed");
 
       const signerTypes = new Map<SignerType, web3.Keypair>();
       const { operator, authority } = config.getBlockchainPrivateKey(network);
@@ -96,6 +99,7 @@ export class SolanasService {
         connection,
         connectionConfirmed,
         connectionVoting,
+        connectionAirdrop,
         connectionConfirmedVoting,
         connectionConfirmedAirdrop,
         signers: signerTypes,
@@ -177,6 +181,10 @@ export class SolanasService {
 
   getConnectionVoting(network: Network) {
     return this.getNetwork(network).connectionVoting;
+  }
+
+  getConnectionAirdrop(network: Network) {
+    return this.getNetwork(network).connectionAirdrop;
   }
 
   getConnectionConfirmedVoting(network: Network) {
@@ -304,7 +312,7 @@ export class SolanasService {
         })
         .instruction();
       transaction.add(claimInstruction);
-      transaction.recentBlockhash = (await this.getConnectionVoting(network).getLatestBlockhash()).blockhash;
+      transaction.recentBlockhash = (await this.getConnectionAirdrop(network).getLatestBlockhash()).blockhash;
       transaction.feePayer = userPubkey;
       transaction.add(modifyComputeUnits).add(addPriorityFee);
       transaction.partialSign(operator);
