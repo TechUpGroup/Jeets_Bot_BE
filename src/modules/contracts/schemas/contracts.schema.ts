@@ -24,6 +24,9 @@ export class Contracts {
   @Prop({ required: false })
   symbol?: string;
 
+  @Prop({ required: false })
+  require_hold?: string;
+
   @Prop({ required: true, enum: ContractName })
   name: string;
 

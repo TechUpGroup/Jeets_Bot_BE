@@ -7,7 +7,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { AnchorProvider, BN, Wallet, web3 } from "@project-serum/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
-import { EVENT, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
+import { EVENT, EVENT_AIRDROP, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
 import { common, votingIDL } from "common/idl/pool";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
@@ -18,10 +18,12 @@ interface SolanaProvider {
   connectionConfirmed: web3.Connection;
   connectionVoting: web3.Connection;
   connectionConfirmedVoting: web3.Connection;
+  connectionConfirmedAirdrop: web3.Connection;
   signers: Map<SignerType, web3.Keypair>;
   provider: AnchorProvider;
   providerEvent: AnchorProvider;
   providerVoting: AnchorProvider;
+  providerAirdrop: AnchorProvider;
 }
 
 export interface SolanaEvents {
@@ -38,6 +40,7 @@ export interface SolanaEvents {
   is_buy?: boolean;
   from?: string;
   to?: string;
+  nonce?: string;
 }
 
 interface TransferResponse {
@@ -67,6 +70,7 @@ export class SolanasService {
       const connectionVoting: web3.Connection = new web3.Connection(config.listRPC[2], "recent");
 
       const connectionConfirmedVoting: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
+      const connectionConfirmedAirdrop: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
 
       const signerTypes = new Map<SignerType, web3.Keypair>();
       const { operator, authority } = config.getBlockchainPrivateKey(network);
@@ -84,15 +88,20 @@ export class SolanasService {
       const providerVoting = new AnchorProvider(connectionVoting, walletAuthority, {
         commitment: "confirmed",
       });
+      const providerAirdrop = new AnchorProvider(connectionVoting, walletAuthority, {
+        commitment: "confirmed",
+      });
       this.solanaMap.set(network, {
         connection,
         connectionConfirmed,
         connectionVoting,
         connectionConfirmedVoting,
+        connectionConfirmedAirdrop,
         signers: signerTypes,
         provider,
         providerEvent,
         providerVoting,
+        providerAirdrop
       });
       for (const address of config.getContract().pools) {
         common.address = address;
@@ -173,6 +182,10 @@ export class SolanasService {
     return this.getNetwork(network).connectionConfirmedVoting;
   }
 
+  getConnectionConfirmedAirdrop(network: Network) {
+    return this.getNetwork(network).connectionConfirmedAirdrop;
+  }
+
   getProvider(network: Network) {
     return this.getNetwork(network).provider;
   }
@@ -183,6 +196,10 @@ export class SolanasService {
 
   getProviderVoting(network: Network) {
     return this.getNetwork(network).providerVoting;
+  }
+
+  getProviderAirdrop(network: Network) {
+    return this.getNetwork(network).providerAirdrop;
   }
 
   getSigner(network: Network, type: SignerType) {
@@ -233,6 +250,11 @@ export class SolanasService {
     return new anchor.EventParser(program.programId, program.coder);
   }
 
+  eventParserAirdrop(network: Network, idl: any) {
+    const program = new anchor.Program(idl as Voting, this.getProviderAirdrop(network) as anchor.AnchorProvider);
+    return new anchor.EventParser(program.programId, program.coder);
+  }
+
   async votingInstruction(userAddress: string, vid: number, wid: number) {
     const network = Network.solana;
     const program = new anchor.Program(votingIDL as Voting, this.getProviderVoting(network) as anchor.AnchorProvider);
@@ -258,6 +280,34 @@ export class SolanasService {
     } catch (e) {
       throw new BadRequestException(e);
     }
+  }
+
+  async claimTokenInstruction(userAddress: string, mint: string, amount: string) {
+    const network = Network.solana;
+    const program = new anchor.Program(votingIDL as Voting, this.getProviderAirdrop(network) as anchor.AnchorProvider);
+    const operator = this.getSigner(network, SignerType.authority);
+    const userPubkey = new web3.PublicKey(userAddress);
+    // try {
+    //   const transaction = new web3.Transaction();
+    //   const claimInstruction = await program.methods
+    //     .claim(mint, new BN(amount))
+    //     .accounts({
+    //       user: userPubkey,
+    //     })
+    //     .accountsPartial({
+    //       operator: operator.publicKey,
+    //     })
+    //     .instruction();
+    //   transaction.add(claimInstruction);
+    //   transaction.recentBlockhash = (await this.getConnectionVoting(network).getLatestBlockhash()).blockhash;
+    //   transaction.feePayer = userPubkey;
+    //   transaction.add(modifyComputeUnits).add(addPriorityFee);
+    //   transaction.partialSign(operator);
+    //   return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+    // } catch (e) {
+    //   throw new BadRequestException(e);
+    // }
+    return new Buffer("");
   }
 
   async getAllEventTransactions(
@@ -343,6 +393,52 @@ export class SolanasService {
                 account: data?.account ? data?.account.toString() : "",
                 uid: data?.uid ? +data?.uid.toString() : 0,
                 sessionId: data?.session ? +data?.session.toString() : 0,
+              });
+            }
+          }
+        } catch {}
+      }
+    }
+
+    return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
+  }
+
+  async getAllEventAirdropTransactions(
+    network: Network,
+    eventParser: anchor.EventParser,
+    mintAddress: web3.PublicKey,
+    until?: string,
+    limit?: number,
+  ): Promise<TransferResponse> {
+    const allEvents: SolanaEvents[] = [];
+    const txs = await this.getConnectionConfirmedAirdrop(network).getSignaturesForAddress(
+      mintAddress,
+      {
+        until,
+        limit,
+      },
+      "confirmed",
+    );
+    if (!txs.length) return { signatureLatest: undefined, solanaEvents: [] };
+    const txSuccess = txs.filter((tx) => tx.err === null).map((tx) => tx.signature);
+    const transactions = await this.getConnectionConfirmedAirdrop(network).getParsedTransactions(txSuccess.reverse(), {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0,
+    });
+    for (const tx of transactions) {
+      if (tx && tx?.meta && tx?.meta?.logMessages) {
+        try {
+          const events = eventParser.parseLogs(tx?.meta?.logMessages);
+          for (const event of events) {
+            const { data, name } = event as any;
+            if (Object.values(EVENT_AIRDROP).includes(name)) {
+              allEvents.push({
+                event: event.name,
+                transactionHash: tx.transaction.signatures[0],
+                logIndex: name === EVENT_AIRDROP.CLAIM ? 0 : 1,
+                blockTime: tx.blockTime || 0,
+                account: data?.account ? data?.account.toString() : "",
+                nonce: data?.nonce ? data?.nonce.toString() : "",
               });
             }
           }

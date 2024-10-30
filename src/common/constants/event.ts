@@ -6,6 +6,10 @@ export enum EVENT_VOTING {
   VOTED = "voted",
 }
 
+export enum EVENT_AIRDROP {
+  CLAIM = "claim",
+}
+
 export enum EVENT_TOKEN {
   SWAP = "Swap",
   TRANSFER = "transferChecked",

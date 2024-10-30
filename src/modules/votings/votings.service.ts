@@ -19,14 +19,10 @@ import { MissionsService } from "modules/missions/missions.service";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { SolanasService } from "modules/_shared/services/solana.service";
 import { HoldersService } from "modules/holders/holders.service";
-import { Network } from "common/enums/network.enum";
-import BigNumber from "bignumber.js";
 import axios from "axios";
 import { LogsService } from "modules/logs/logs.service";
 import { CampaignsService } from "modules/campaigns/campaigns.service";
-import { ContractName } from "common/constants/contract";
-import { ContractsService } from "modules/contracts/contracts.service";
-import { AIRDROP_AMOUNT } from "common/constants/asset";
+import { generateRandomString } from "common/utils/ethers";
 
 @Injectable()
 export class VotingsService {
@@ -46,7 +42,6 @@ export class VotingsService {
     private readonly holdersService: HoldersService,
     private readonly logsService: LogsService,
     private readonly campaignsService: CampaignsService,
-    private readonly contractsService: ContractsService,
   ) {}
 
   async createVote(user: UsersDocument, wid: number) {
@@ -60,9 +55,9 @@ export class VotingsService {
     if (user.twitter_followers_count < 2000) {
       throw new BadRequestException("Twitter follower minimum 2000");
     }
-    const holder = await this.holdersService.holder(Network.solana, config.getContract().tokens[0].mint, user.address);
-    if (!holder || BigNumber(holder.amount.toString()).lt("2000000000")) {
-      throw new BadRequestException("Holder minimum 2000🌕");
+    const checkHolder = await this.holdersService.checkHolder(user);
+    if (!checkHolder) {
+      throw new BadRequestException("Hold token invalid");
     }
     const [current, { ratio }] = await Promise.all([
       this.votingsModel.findOne({ start_time: { $lte: now }, end_time: { $gt: now } }),
@@ -318,38 +313,43 @@ export class VotingsService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { name: "syncWinnerVotings" })
   async syncWinnerVotings() {
-    const [listWinners, tokens] = await Promise.all([
+    const [listWinners, airdropInfos] = await Promise.all([
       this.getListWinnerYesterday(),
-      this.contractsService.getAllContractsByName(ContractName.TOKEN, Network.solana),
+      this.campaignsService.airdropInfos(),
     ]);
-    const token = tokens.find((a) => a.symbol === "$MOON");
-    if (!token) return;
+    if (!airdropInfos.length) return;
     const bulkUpdate: any[] = [];
     const datas: any[] = [];
     const bulkCreate: any[] = [];
-    for (const winner of listWinners) {
+    for (let i = 0; i <  listWinners.length; i++) {
       bulkUpdate.push({
         updateOne: {
           filter: {
-            wid: winner.wid,
+            wid: listWinners[i].wid,
           },
           update: {
             status: false,
           },
         },
       });
-      datas.push({ address: winner.wl.address, x_account: winner.wl.name });
-      bulkCreate.push({
-        address: winner.wl.address,
-        vid: winner.vid,
-        detail: {
-          mint: token.contract_address,
-          amount: AIRDROP_AMOUNT,
-          symbol: token?.symbol || "",
-          decimal: token?.decimal || "",
-        },
-        status: false,
-      });
+      datas.push({ address: listWinners[i].wl.address, x_account: listWinners[i].wl.name });
+      const foundAirdrop = airdropInfos.find(a => a.rank === i + 1);
+      if (foundAirdrop) {
+        for (const item of foundAirdrop.details) {
+          bulkCreate.push({
+            address: listWinners[i].wl.address,
+            vid: listWinners[i].vid,
+            nonce: generateRandomString(6) + Date.now().toFixed(),
+            detail: {
+              mint: item.mint,
+              amount: item.amount.toString(),
+              symbol: item?.symbol || "",
+              decimal: item?.decimal || "",
+            },
+            status: false,
+          });
+        }
+      }
     }
     await Promise.all([
       bulkUpdate.length ? this.votingsModel.bulkWrite(bulkUpdate) : undefined,

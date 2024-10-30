@@ -7,7 +7,7 @@ import { CAMPAIGNS_MODEL, CampaignsDocument } from "./schemas/campaigns.schema";
 import { USER_CAMPAIGNS_MODEL, UserCampaigns, UserCampaignsDocument } from "./schemas/user-campaigns.schema";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
-import { CreateNewCampaignDto, LeaderboardDto } from "./dto/campaigns.dto";
+import { CreateNewAirdropDto, CreateNewCampaignDto, LeaderboardDto, UpdateAirdropDto } from "./dto/campaigns.dto";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { HoldersService } from "modules/holders/holders.service";
@@ -15,12 +15,14 @@ import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
 import { UsersService } from "modules/users/users.service";
 import { ContractsService } from "modules/contracts/contracts.service";
-import {  TIMESTAMP_DAY, TIMESTAMP_WEEK } from "common/constants/asset";
+import { TIMESTAMP_DAY, TIMESTAMP_WEEK } from "common/constants/asset";
 import { EVENT_CAMPAGIN_HISTORIES } from "common/constants/event";
 import { LEADERBOARD_TYPE } from "common/enums/common";
 import { getCurrentMonth, getCurrentWeek, getCurrentYear } from "common/utils";
 import { CAMPAIGN_TYPE } from "common/enums/common";
 import { USER_AIRDROPS_MODEL, UserAirdrops, UserAirdropsDocument } from "./schemas/user-airdrops.schema";
+import { SolanasService } from "modules/_shared/services/solana.service";
+import { AIRDROPS_MODEL, AirdropsDocument } from "./schemas/airdrops.schema";
 
 @Injectable()
 export class CampaignsService {
@@ -31,9 +33,12 @@ export class CampaignsService {
     private readonly userCampaignsModel: PaginateModel<UserCampaignsDocument>,
     @InjectModel(USER_AIRDROPS_MODEL)
     private readonly userAirdropsModel: PaginateModel<UserAirdropsDocument>,
+    @InjectModel(AIRDROPS_MODEL)
+    private readonly airdropsModel: PaginateModel<AirdropsDocument>,
     private readonly contractService: ContractsService,
     private readonly holdersService: HoldersService,
     private readonly usersService: UsersService,
+    private readonly solanasService: SolanasService,
   ) {
     void this.syncStartCampaign();
   }
@@ -50,6 +55,36 @@ export class CampaignsService {
       return this.userAirdropsModel.insertMany(items);
     }
     return this.userAirdropsModel.create(items);
+  }
+
+  bulkUpdateAirdrop(bulkUpdate: any[]) {
+    return this.userAirdropsModel.bulkWrite(bulkUpdate);
+  }
+
+  async createNewAirdrop(auth: string, body: CreateNewAirdropDto) {
+    if (auth !== config.admin) {
+      throw new UnauthorizedException("Not permission");
+    }
+    try {
+      return this.airdropsModel.create(body);
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
+  }
+
+  async updateAirdrop(auth: string, rank: number, body: UpdateAirdropDto) {
+    if (auth !== config.admin) {
+      throw new UnauthorizedException("Not permission");
+    }
+    try {
+      return this.airdropsModel.findOneAndUpdate({ rank }, { ...body }, { new: true });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
+  }
+
+  airdropInfos() {
+    return this.airdropsModel.find({ status: true });
   }
 
   async getListCampaigns(user: UsersDocument, query: PaginationDtoAndSortDto) {
@@ -83,19 +118,41 @@ export class CampaignsService {
         },
       },
     ]);
-    const [airdrops, campaigns] = await Promise.all([
+    const [airdrops, campaigns, userHolder] = await Promise.all([
       this.userAirdropsModel.find({ address: user.address }),
       this.campaignsModel.aggregatePaginate(aggregate, { limit, page }),
+      this.holdersService.userHolder(user),
     ]);
-    return { airdrops, campaigns };
+    const newDocs: any[] = [];
+    for (const data of campaigns.docs) {
+      let statusHold = false;
+      const holders = userHolder.filter((item: any) => {
+        const campaignHolder = data.details.find((a) => a.mint === item.mint);
+        return campaignHolder && BigNumber(item.amount.toString()).gte(campaignHolder.amount.toString());
+      });
+      if (holders.length === data.details.length) {
+        statusHold = true;
+      }
+      newDocs.push({
+        ...data,
+        statusHold,
+      });
+    }
+
+    return { airdrops, campaigns: { ...campaigns, docs: newDocs } };
   }
 
   async claim(user: UsersDocument, id: string) {
     const airdrop = await this.userAirdropsModel.findOne({ _id: id, status: false });
     if (!airdrop) {
-      throw new BadRequestException("Airdrop not found or claimed")
+      throw new BadRequestException("Airdrop not found or claimed");
     }
-
+    const tx = await this.solanasService.claimTokenInstruction(
+      user.address,
+      airdrop.detail.mint,
+      airdrop.detail.amount.toString(),
+    );
+    return tx.toString("base64");
   }
 
   async createNewCampaign(auth: string, body: CreateNewCampaignDto) {
@@ -108,7 +165,7 @@ export class CampaignsService {
       const data: any = {
         ...body,
         cid: currentCID,
-        is_origin: true
+        is_origin: true,
       };
       await this.contractService.createContracts(body.details);
       return this.campaignsModel.create(data);

@@ -1,14 +1,20 @@
-import { CacheTTL, Controller, Get, Query, UseInterceptors } from "@nestjs/common";
+import { Controller, Get } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 
 import { HoldersService } from "./holders.service";
-import { CacheInterceptor } from "@nestjs/cache-manager";
-import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
+import { Auth } from "common/decorators/http.decorators";
+import { User } from "common/decorators/user.decorator";
+import { UsersDocument } from "modules/users/schemas/users.schema";
 
 @ApiTags("Holders")
 @Controller("holders")
-@UseInterceptors(CacheInterceptor)
 export class HoldersController {
   constructor(private readonly holdersService: HoldersService) {}
+
+  @Auth()
+  @Get("user")
+  holderValid(@User() user: UsersDocument) {
+    return this.holdersService.holderValid(user);
+  }
   
 }

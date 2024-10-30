@@ -62,6 +62,14 @@ export class HelperSolanaService {
           tx_synced,
         );
       }
+      if (name === ContractName.AIRDROP) {
+        res = await this.solanasService.getAllEventAirdropTransactions(
+          network,
+          eventParser,
+          new web3.PublicKey(contract_address),
+          tx_synced,
+        );
+      }
     } else {
       res = await this.solanasService.getAllEventTransferToken(
         network,

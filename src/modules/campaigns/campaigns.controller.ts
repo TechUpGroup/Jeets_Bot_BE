@@ -4,7 +4,7 @@ import { CampaignsService } from "./campaigns.service";
 import { Auth } from "common/decorators/http.decorators";
 import { User } from "common/decorators/user.decorator";
 import { UsersDocument } from "modules/users/schemas/users.schema";
-import { CreateNewCampaignDto, LeaderboardDto } from "./dto/campaigns.dto";
+import { CreateNewAirdropDto, CreateNewCampaignDto, LeaderboardDto, UpdateAirdropDto } from "./dto/campaigns.dto";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 
 @ApiTags("Campaigns")
@@ -39,5 +39,20 @@ export class CampaignsController {
   @Post("create-new-campaign")
   createNewCampaign(@Headers('auth') auth: string, @Body() body: CreateNewCampaignDto) {
     return this.campaignsService.createNewCampaign(auth, body);
+  }
+
+  @Post("airdrop/create")
+  createNewAirdrop(@Headers('auth') auth: string, @Body() body: CreateNewAirdropDto) {
+    return this.campaignsService.createNewAirdrop(auth, body);
+  }
+
+  @Post("airdrop/update/:rank")
+  updateAirdrop(@Headers('auth') auth: string, @Param("rank") rank: number, @Body() body: UpdateAirdropDto) {
+    return this.campaignsService.updateAirdrop(auth, rank, body);
+  }
+
+  @Get("airdrop/info")
+  airdropInfos() {
+    return this.campaignsService.airdropInfos();
   }
 }

@@ -195,10 +195,14 @@ class Config {
         decimal: 6
       }
     ]
+    const airdrops = [
+      ""
+    ]
     return {
       pools,
       votes,
       tokens,
+      airdrops
     };
   }
 
