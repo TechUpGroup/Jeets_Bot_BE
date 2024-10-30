@@ -247,7 +247,7 @@ export class VotingsService {
     {
       const timestamp = new Date();
       timestamp.setDate(timestamp.getDate() - 1);
-      timestamp.setHours(0, 0, 0);
+      timestamp.setHours(0, 0, 0, 0);
       const startTime = timestamp.getTime();
       const endTime = timestamp.getTime() + 86400000;
       const sessionYesterday = await this.votingsModel.findOne({ start_time: startTime, end_time: endTime });
@@ -300,7 +300,7 @@ export class VotingsService {
     const lastS = await this.votingsModel.find().sort({ vid: -1 }).limit(1);
     const currentVID = lastS.length ? lastS[0].vid + 1 : 1;
     const timestamp = new Date();
-    timestamp.setHours(0, 0, 0);
+    timestamp.setHours(0, 0, 0, 0);
     const startTime = timestamp.getTime();
     const endTime = timestamp.getTime() + 86400000;
     const data: any = {
@@ -352,7 +352,7 @@ export class VotingsService {
       }
     }
     await Promise.all([
-      bulkUpdate.length ? this.votingsModel.bulkWrite(bulkUpdate) : undefined,
+      bulkUpdate.length ? this.whitelistsModel.bulkWrite(bulkUpdate) : undefined,
       bulkCreate.length ? this.campaignsService.saveUserAirdropHistories(bulkCreate) : undefined,
       datas.length ? this.addSourceAddressToTracking(datas) : undefined,
     ]);

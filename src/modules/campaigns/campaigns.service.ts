@@ -274,7 +274,7 @@ export class CampaignsService {
 
   async getCampaignStartToDay() {
     const timestamp = new Date();
-    timestamp.setHours(0, 0, 0);
+    timestamp.setHours(0, 0, 0, 0);
     return this.campaignsModel.find({
       $and: [
         {
