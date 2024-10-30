@@ -175,8 +175,8 @@ export const onDay = (date1: Date, date2: Date) => {
 };
 
 export const diffDay = (date1: Date, date2: Date) => {
-  date1.setHours(0, 0, 0);
-  date2.setHours(0, 0, 0);
+  date1.setHours(0, 0, 0, 0);
+  date2.setHours(0, 0, 0, 0);
 
   const diffInMilliseconds = date1.getTime() - date2.getTime();
 
