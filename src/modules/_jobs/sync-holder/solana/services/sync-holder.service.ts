@@ -75,7 +75,7 @@ export class JobSyncHolderService {
     const holders: any[] = [];
 
     while (true) {
-      const response = await fetch(config.helius_url, {
+      const response = await fetch("https://devnet.helius-rpc.com/?api-key=b500720c-89eb-4913-89bb-0fa865f84c72", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
