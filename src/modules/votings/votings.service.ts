@@ -352,7 +352,7 @@ export class VotingsService {
       }
     }
     await Promise.all([
-      bulkUpdate.length ? this.votingsModel.bulkWrite(bulkUpdate) : undefined,
+      bulkUpdate.length ? this.whitelistsModel.bulkWrite(bulkUpdate) : undefined,
       bulkCreate.length ? this.campaignsService.saveUserAirdropHistories(bulkCreate) : undefined,
       datas.length ? this.addSourceAddressToTracking(datas) : undefined,
     ]);
