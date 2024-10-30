@@ -151,6 +151,7 @@ export class CampaignsService {
       user.address,
       airdrop.detail.mint,
       airdrop.detail.amount.toString(),
+      airdrop.nonce
     );
     return tx.toString("base64");
   }

@@ -8,11 +8,11 @@ import { AnchorProvider, BN, Wallet, web3 } from "@project-serum/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
 import { EVENT, EVENT_AIRDROP, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
-import { common, votingIDL } from "common/idl/pool";
+import { common, vaultIDL, votingIDL } from "common/idl/pool";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
-import { ScJeetsSol, Voting } from "common/idl/jeets";
 import { Cron, CronExpression } from "@nestjs/schedule";
+import { ScJeetsSol, VaultSolana, Voting } from "common/idl/jeets";
 
 interface SolanaProvider {
   connection: web3.Connection;
@@ -102,7 +102,7 @@ export class SolanasService {
         provider,
         providerEvent,
         providerVoting,
-        providerAirdrop
+        providerAirdrop,
       });
       for (const address of config.getContract().pools) {
         common.address = address;
@@ -252,7 +252,7 @@ export class SolanasService {
   }
 
   eventParserAirdrop(network: Network, idl: any) {
-    const program = new anchor.Program(idl as Voting, this.getProviderAirdrop(network) as anchor.AnchorProvider);
+    const program = new anchor.Program(idl as VaultSolana, this.getProviderAirdrop(network) as anchor.AnchorProvider);
     return new anchor.EventParser(program.programId, program.coder);
   }
 
@@ -283,32 +283,35 @@ export class SolanasService {
     }
   }
 
-  async claimTokenInstruction(userAddress: string, mint: string, amount: string) {
+  async claimTokenInstruction(userAddress: string, mint: string, amount: string, nonce: string) {
     const network = Network.solana;
-    const program = new anchor.Program(votingIDL as Voting, this.getProviderAirdrop(network) as anchor.AnchorProvider);
+    const program = new anchor.Program(
+      vaultIDL as VaultSolana,
+      this.getProviderAirdrop(network) as anchor.AnchorProvider,
+    );
     const operator = this.getSigner(network, SignerType.authority);
     const userPubkey = new web3.PublicKey(userAddress);
-    // try {
-    //   const transaction = new web3.Transaction();
-    //   const claimInstruction = await program.methods
-    //     .claim(mint, new BN(amount))
-    //     .accounts({
-    //       user: userPubkey,
-    //     })
-    //     .accountsPartial({
-    //       operator: operator.publicKey,
-    //     })
-    //     .instruction();
-    //   transaction.add(claimInstruction);
-    //   transaction.recentBlockhash = (await this.getConnectionVoting(network).getLatestBlockhash()).blockhash;
-    //   transaction.feePayer = userPubkey;
-    //   transaction.add(modifyComputeUnits).add(addPriorityFee);
-    //   transaction.partialSign(operator);
-    //   return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
-    // } catch (e) {
-    //   throw new BadRequestException(e);
-    // }
-    return new Buffer("");
+    try {
+      const transaction = new web3.Transaction();
+      const claimInstruction = await program.methods
+        .claim(
+          new BN(amount),
+          nonce
+        )
+        .accounts({
+          mint,
+          receiver: userPubkey,
+        })
+        .instruction();
+      transaction.add(claimInstruction);
+      transaction.recentBlockhash = (await this.getConnectionVoting(network).getLatestBlockhash()).blockhash;
+      transaction.feePayer = userPubkey;
+      transaction.add(modifyComputeUnits).add(addPriorityFee);
+      transaction.partialSign(operator);
+      return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
   }
 
   async getAllEventTransactions(
