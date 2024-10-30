@@ -30,7 +30,7 @@ export class JobSyncHolderService {
   }
 
   private isRunning = {};
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   private async start() {
     const contracts = await this.contractService.getAllContractsByName(ContractName.TOKEN, Network.solana);
     if (!contracts.length) return;
