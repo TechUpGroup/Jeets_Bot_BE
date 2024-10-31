@@ -196,7 +196,7 @@ class Config {
       }
     ]
     const airdrops = [
-      ""
+      "6Y9kXEKtrL2oPnkWJt76oEpmhK8gLNM3KspEtfuJWhp6"
     ]
     return {
       pools,

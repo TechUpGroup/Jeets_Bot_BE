@@ -981,7 +981,7 @@ export const votingIDL = {
 }
 
 export const vaultIDL = {
-  "address": "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG",
+  "address": "6Y9kXEKtrL2oPnkWJt76oEpmhK8gLNM3KspEtfuJWhp6",
   "metadata": {
     "name": "vault_solana",
     "version": "0.1.0",
