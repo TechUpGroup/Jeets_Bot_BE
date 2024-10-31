@@ -7,7 +7,7 @@ export enum EVENT_VOTING {
 }
 
 export enum EVENT_AIRDROP {
-  CLAIM = "claim",
+  CLAIM = "claimed",
 }
 
 export enum EVENT_TOKEN {
