@@ -2,7 +2,7 @@ import { IsBoolean, IsEnum, IsOptional, IsString } from "class-validator";
 
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { ToBoolean, Trim } from "common/decorators/transforms.decorator";
-import { SOCAIL_TYPE } from "common/enums/common";
+import { MISSION_TYPE, SOCAIL_TYPE } from "common/enums/common";
 import { Optional } from "@nestjs/common";
 
 export class MissionXVerifyDto {
@@ -19,6 +19,13 @@ export class CreateMissionDto {
   })
   @IsEnum(SOCAIL_TYPE)
   type: SOCAIL_TYPE;
+
+  @ApiProperty({
+    enum: MISSION_TYPE,
+    default: MISSION_TYPE.TASK,
+  })
+  @IsEnum(MISSION_TYPE)
+  mission_type: MISSION_TYPE;
 
   @ApiProperty({
     default: "Follow X",
@@ -63,6 +70,14 @@ export class UpdateMissionDto {
   @IsOptional()
   @IsEnum(SOCAIL_TYPE)
   type: SOCAIL_TYPE;
+
+  @ApiPropertyOptional({
+    enum: MISSION_TYPE,
+    default: MISSION_TYPE.TASK,
+  })
+  @IsOptional()
+  @IsEnum(MISSION_TYPE)
+  mission_type: MISSION_TYPE;
 
   @ApiPropertyOptional({
     default: "Follow X",

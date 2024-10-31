@@ -2,7 +2,7 @@ import { Options } from "common/config/mongoose.config";
 import { Document } from "mongoose";
 
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Details, DetailsSchema } from "./campaigns.schema";
+import { Details, DetailsSchema } from "./airdrops.schema";
 
 export const USER_AIRDROPS_MODEL = "user-airdrops";
 

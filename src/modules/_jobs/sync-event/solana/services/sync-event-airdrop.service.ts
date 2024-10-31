@@ -12,7 +12,7 @@ import { SolanasService } from "modules/_shared/services/solana.service";
 import { Network } from "common/enums/network.enum";
 import { vaultIDL } from "common/idl/pool";
 import { IEventParams } from "../interfaces/helper-solana.interface";
-import { CampaignsService } from "modules/campaigns/campaigns.service";
+import { AirdropsService } from "modules/airdrops/airdrops.service";
 const acceptEvents = [EVENT_AIRDROP.CLAIM];
 
 @Injectable()
@@ -23,7 +23,7 @@ export class JobSyncEventAirdropService {
     private readonly contractService: ContractsService,
     private readonly helperService: HelperSolanaService,
     private readonly historiesService: HistoriesService,
-    private readonly campaignsService: CampaignsService,
+    private readonly airdropsService: AirdropsService,
   ) {}
   private isRunning = {};
 
@@ -91,7 +91,7 @@ export class JobSyncEventAirdropService {
 
       await Promise.all([
         histories.length ? this.historiesService.saveAirdropHistories(histories) : undefined,
-        bulkUpdate.length ? this.campaignsService.bulkUpdateAirdrop(bulkUpdate) : undefined,
+        bulkUpdate.length ? this.airdropsService.bulkUpdateAirdrop(bulkUpdate) : undefined,
       ]);
     } catch (err) {
       this.logsService.createLog("JobSyncEventAirdropService -> handleEvents: ", err);

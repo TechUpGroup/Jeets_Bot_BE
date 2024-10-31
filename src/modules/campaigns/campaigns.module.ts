@@ -6,21 +6,15 @@ import { CAMPAIGNS_MODEL, CampaignsSchema } from "./schemas/campaigns.schema";
 import { CampaignsController } from "./campaigns.controller";
 import { USER_CAMPAIGNS_MODEL, UserCampaignsSchema } from "./schemas/user-campaigns.schema";
 import { UsersModule } from "modules/users/users.module";
-import { MissionsModule } from "modules/missions/missions.module";
 import { HoldersModule } from "modules/holders/holders.module";
 import { ContractsModule } from "modules/contracts/contracts.module";
-import { USER_AIRDROPS_MODEL, UserAirdropsSchema } from "./schemas/user-airdrops.schema";
-import { AIRDROPS_MODEL, AirdropsSchema } from "./schemas/airdrops.schema";
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: CAMPAIGNS_MODEL, schema: CampaignsSchema }]),
     MongooseModule.forFeature([{ name: USER_CAMPAIGNS_MODEL, schema: UserCampaignsSchema }]),
     MongooseModule.forFeature([{ name: USER_CAMPAIGNS_MODEL, schema: UserCampaignsSchema }]),
-    MongooseModule.forFeature([{ name: USER_AIRDROPS_MODEL, schema: UserAirdropsSchema }]),
-    MongooseModule.forFeature([{ name: AIRDROPS_MODEL, schema: AirdropsSchema }]),
     forwardRef(() => UsersModule),
-    forwardRef(() => MissionsModule),
     forwardRef(() => ContractsModule),
     HoldersModule,
   ],

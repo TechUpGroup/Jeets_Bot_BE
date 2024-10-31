@@ -2,7 +2,7 @@ import { Options } from "common/config/mongoose.config";
 import { Document } from "mongoose";
 
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { X_ACTION_TYPE } from "common/enums/common";
+import { MISSION_TYPE, SOCAIL_TYPE, X_ACTION_TYPE } from "common/enums/common";
 
 export const MISSIONS_MODEL = "missions";
 
@@ -14,8 +14,11 @@ export class Missions {
   @Prop({ required: false })
   mission_image: string;
 
-  @Prop({ required: true })
-  type: string;
+  @Prop({ required: true, index: true, enum: MISSION_TYPE, default: MISSION_TYPE.TASK })
+  mission_type: MISSION_TYPE;
+
+  @Prop({ required: true, index: true, enum: SOCAIL_TYPE, default: SOCAIL_TYPE.X })
+  type: SOCAIL_TYPE;
 
   @Prop({ required: true })
   name: string;

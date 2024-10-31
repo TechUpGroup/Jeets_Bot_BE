@@ -1,13 +1,13 @@
 import { PaginateModel } from "mongoose";
 
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, forwardRef, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
 import { CAMPAIGNS_MODEL, CampaignsDocument } from "./schemas/campaigns.schema";
 import { USER_CAMPAIGNS_MODEL, UserCampaigns, UserCampaignsDocument } from "./schemas/user-campaigns.schema";
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
-import { CreateNewAirdropDto, CreateNewCampaignDto, LeaderboardDto, UpdateAirdropDto } from "./dto/campaigns.dto";
+import { CreateNewCampaignDto } from "./dto/campaigns.dto";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { HoldersService } from "modules/holders/holders.service";
@@ -15,14 +15,9 @@ import { Network } from "common/enums/network.enum";
 import BigNumber from "bignumber.js";
 import { UsersService } from "modules/users/users.service";
 import { ContractsService } from "modules/contracts/contracts.service";
-import { TIMESTAMP_DAY, TIMESTAMP_WEEK } from "common/constants/asset";
-import { EVENT_CAMPAGIN_HISTORIES } from "common/constants/event";
-import { LEADERBOARD_TYPE } from "common/enums/common";
-import { getCurrentMonth, getCurrentWeek, getCurrentYear } from "common/utils";
+import { TIMESTAM_HOUR, TIMESTAMP_DAY } from "common/constants/asset";
+import { EVENT_CAMPAGIN_HISTORIES, EVENT_SCORE } from "common/constants/event";
 import { CAMPAIGN_TYPE } from "common/enums/common";
-import { USER_AIRDROPS_MODEL, UserAirdrops, UserAirdropsDocument } from "./schemas/user-airdrops.schema";
-import { SolanasService } from "modules/_shared/services/solana.service";
-import { AIRDROPS_MODEL, AirdropsDocument } from "./schemas/airdrops.schema";
 
 @Injectable()
 export class CampaignsService {
@@ -31,14 +26,10 @@ export class CampaignsService {
     private readonly campaignsModel: PaginateModel<CampaignsDocument>,
     @InjectModel(USER_CAMPAIGNS_MODEL)
     private readonly userCampaignsModel: PaginateModel<UserCampaignsDocument>,
-    @InjectModel(USER_AIRDROPS_MODEL)
-    private readonly userAirdropsModel: PaginateModel<UserAirdropsDocument>,
-    @InjectModel(AIRDROPS_MODEL)
-    private readonly airdropsModel: PaginateModel<AirdropsDocument>,
     private readonly contractService: ContractsService,
     private readonly holdersService: HoldersService,
+    @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
-    private readonly solanasService: SolanasService,
   ) {
     void this.syncStartCampaign();
   }
@@ -48,43 +39,6 @@ export class CampaignsService {
       return this.userCampaignsModel.insertMany(items);
     }
     return this.userCampaignsModel.create(items);
-  }
-
-  saveUserAirdropHistories(items: UserAirdrops | UserAirdrops[]) {
-    if (Array.isArray(items)) {
-      return this.userAirdropsModel.insertMany(items);
-    }
-    return this.userAirdropsModel.create(items);
-  }
-
-  bulkUpdateAirdrop(bulkUpdate: any[]) {
-    return this.userAirdropsModel.bulkWrite(bulkUpdate);
-  }
-
-  async createNewAirdrop(auth: string, body: CreateNewAirdropDto) {
-    if (auth !== config.admin) {
-      throw new UnauthorizedException("Not permission");
-    }
-    try {
-      return this.airdropsModel.create(body);
-    } catch (e) {
-      throw new BadRequestException(e);
-    }
-  }
-
-  async updateAirdrop(auth: string, rank: number, body: UpdateAirdropDto) {
-    if (auth !== config.admin) {
-      throw new UnauthorizedException("Not permission");
-    }
-    try {
-      return this.airdropsModel.findOneAndUpdate({ rank }, { ...body }, { new: true });
-    } catch (e) {
-      throw new BadRequestException(e);
-    }
-  }
-
-  airdropInfos() {
-    return this.airdropsModel.find({ status: true });
   }
 
   async getListCampaigns(user: UsersDocument, query: PaginationDtoAndSortDto) {
@@ -118,8 +72,7 @@ export class CampaignsService {
         },
       },
     ]);
-    const [airdrops, campaigns, userHolder] = await Promise.all([
-      this.userAirdropsModel.find({ address: user.address }),
+    const [campaigns, userHolder] = await Promise.all([
       this.campaignsModel.aggregatePaginate(aggregate, { limit, page }),
       this.holdersService.userHolder(user),
     ]);
@@ -139,21 +92,7 @@ export class CampaignsService {
       });
     }
 
-    return { airdrops, campaigns: { ...campaigns, docs: newDocs } };
-  }
-
-  async claim(user: UsersDocument, id: string) {
-    const airdrop = await this.userAirdropsModel.findOne({ _id: id, status: false });
-    if (!airdrop) {
-      throw new BadRequestException("Airdrop not found or claimed");
-    }
-    const tx = await this.solanasService.claimTokenInstruction(
-      user.address,
-      airdrop.detail.mint,
-      airdrop.detail.amount.toString(),
-      airdrop.nonce
-    );
-    return tx.toString("base64");
+    return { ...campaigns, docs: newDocs };
   }
 
   async createNewCampaign(auth: string, body: CreateNewCampaignDto) {
@@ -313,7 +252,7 @@ export class CampaignsService {
     }
     const [resParticipated, allUsers] = await Promise.all([
       this.userHasParticipated(cids),
-      this.usersService.getAllUsers(),
+      this.usersService.getAllUsersVerified(),
     ]);
     const allAddresses = allUsers.map((a) => a.address);
     const userHolders = await this.holdersService.userHolders(Network.solana, mints, allAddresses);
@@ -349,79 +288,6 @@ export class CampaignsService {
       userMintHolders[userHolder.owner].push(userHolder);
     }
     return { campaigns, userMintHolders, resParticipated };
-  }
-
-  async leaderboard(user: UsersDocument, query: LeaderboardDto) {
-    const { type } = query;
-    let startTime = new Date();
-    let endTime = new Date();
-    if (type === LEADERBOARD_TYPE.WEEK) {
-      const time = getCurrentWeek();
-      startTime = time.startTime;
-      endTime = time.endTime;
-    }
-    if (type === LEADERBOARD_TYPE.MONTH) {
-      const time = getCurrentMonth();
-      startTime = time.startTime;
-      endTime = time.endTime;
-    }
-    if (type === LEADERBOARD_TYPE.YEAR) {
-      const time = getCurrentYear();
-      startTime = time.startTime;
-      endTime = time.endTime;
-    }
-    const allUsers = await this.userCampaignsModel.aggregate([
-      {
-        $match: {
-          $and: [{ timestamp: { $gte: startTime } }, { timestamp: { $lte: endTime } }],
-        },
-      },
-      {
-        $group: {
-          _id: "$address",
-          totalScore: { $sum: "$score" },
-        },
-      },
-      {
-        $sort: {
-          totalScore: -1,
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          totalScore: 1,
-        },
-      },
-    ]);
-    let userindex = allUsers.length;
-    let totalScore = 0;
-    const found = allUsers.findIndex((u) => u._id === user.address);
-    if (found !== -1) {
-      userindex = found + 1;
-      totalScore = allUsers[found].totalScore;
-    }
-    const datas = allUsers.slice(0, 50);
-    const addresses = datas.map((a) => a._id);
-    const userInfos = await this.usersService.getUsersByAddresses(addresses);
-    const topScores = datas.map((a, i) => {
-      const u = userInfos.find((b) => b.address === a._id);
-      return {
-        twitter_username: u?.twitter_username,
-        twitter_avatar: u?.twitter_avatar,
-        totalScore: a.totalScore,
-        rank: i + 1,
-      };
-    });
-    return {
-      user: {
-        twitter_username: user.twitter_username,
-        twitter_avatar: user?.twitter_avatar,
-        totalScore,
-        rank: userindex,
-      },
-      topScores,
-    };
   }
 
   private isRunningStartCampaign = false;
@@ -470,6 +336,7 @@ export class CampaignsService {
     const bulkUpdate: any[] = [];
     const bulkUpdateCampaign: any[] = [];
     const bulkUpdateScore: any[] = [];
+    const bulkUpdateScoreHistories: any[] = [];
     for (const campaign of campaigns) {
       for (const [address, items] of Object.entries(userMintHolders)) {
         const winners = (items as any[]).filter((item: any) => {
@@ -518,19 +385,25 @@ export class CampaignsService {
               },
             },
           });
+          bulkUpdateScoreHistories.push({
+            address,
+            event: EVENT_SCORE.CAMPAIGN_HOLD_TOKEN,
+            score: campaign.score,
+          });
         }
       }
     }
     await Promise.all([
       bulkUpdate.length ? this.userCampaignsModel.bulkWrite(bulkUpdate) : undefined,
       bulkUpdateScore.length ? this.usersService.bulkWrite(bulkUpdateScore) : undefined,
+      bulkUpdateScoreHistories.length ? this.usersService.saveUserScoreHistories(bulkUpdateScoreHistories) : undefined,
       bulkUpdateCampaign.length ? this.campaignsModel.bulkWrite(bulkUpdateCampaign) : undefined,
     ]);
     this.isRunningEndCampaign = false;
   }
 
   // @Cron("0 0 * * 1", { name: "syncResetCampaign" })
-  @Cron("0 0 */2 * *", { name: "syncResetCampaign" })
+  @Cron(CronExpression.EVERY_HOUR, { name: "syncResetCampaign" })
   async syncResetCampaign() {
     const timestamp = Date.now();
     const [campaigns, lastS] = await Promise.all([
@@ -547,7 +420,7 @@ export class CampaignsService {
         details: campaign.details,
         score: campaign.score,
         start_time: timestamp,
-        end_time: timestamp + 2 * TIMESTAMP_DAY - 1,
+        end_time: timestamp + TIMESTAM_HOUR - 1,
         status: true,
       });
     });
