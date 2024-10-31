@@ -72,8 +72,8 @@ export class SolanasService {
       const connectionVoting: web3.Connection = new web3.Connection(config.listRPC[2], "recent");
       const connectionConfirmedVoting: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
 
-      const connectionAirdrop: web3.Connection = new web3.Connection(config.listRPC[3], "recent");
-      const connectionConfirmedAirdrop: web3.Connection = new web3.Connection(config.listRPC[3], "confirmed");
+      const connectionAirdrop: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "recent");
+      const connectionConfirmedAirdrop: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "confirmed");
 
       const signerTypes = new Map<SignerType, web3.Keypair>();
       const { operator, authority } = config.getBlockchainPrivateKey(network);
@@ -426,7 +426,7 @@ export class SolanasService {
       mintAddress,
       {
         until,
-        limit,
+        limit: 10,
       },
       "confirmed",
     );
