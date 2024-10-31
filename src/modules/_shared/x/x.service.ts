@@ -76,7 +76,9 @@ export class XService {
   async getMentions(uid: string) {
     const token = await this.getAccessToken();
     const twitterClient = new TwitterApi(token);
-    const mentions = await twitterClient.v2.userMentionTimeline(uid, { max_results: 100 }).catch(console.error);
+    const mentions = await twitterClient.v2
+      .userMentionTimeline(uid, { max_results: 100, expansions: ["author_id"] })
+      .catch(console.error);
     return mentions?.data.data || [];
   }
 
