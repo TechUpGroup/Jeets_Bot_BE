@@ -3,7 +3,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { PaginateModel } from "mongoose";
 import { X_AUTH_MODEL, XAuthDocument } from "./schemas/x-auth.schema";
 import config from "common/config";
-import TwitterApi, { IParsedOAuth2TokenResult, UsersV2Params } from "twitter-api-v2";
+import TwitterApi, { IParsedOAuth2TokenResult, SendTweetV2Params, UsersV2Params } from "twitter-api-v2";
 
 @Injectable()
 export class XService {
@@ -73,8 +73,30 @@ export class XService {
     return data.data;
   }
 
-  async getAccessToken(uid: string) {
-    const auth = await this.xAuthModel.findOne({ uid });
+  async getMentions(uid: string) {
+    const token = await this.getAccessToken();
+    const twitterClient = new TwitterApi(token);
+    const mentions = await twitterClient.v2.userMentionTimeline(uid, { max_results: 100 }).catch(console.error);
+    return mentions?.data.data || [];
+  }
+
+  async postTweet(uid: string, content: string, payload: Partial<SendTweetV2Params>) {
+    const token = await this.getAccessToken(uid);
+    const twitterClient = new TwitterApi(token);
+    const result = await twitterClient.v2.tweet(content, payload).catch(console.error);
+    if (!result) {
+      return false;
+    }
+    return result.data;
+  }
+
+  async replyTweet(uid: string, tid: string, content: string) {
+    const result = await this.postTweet(uid, content, { reply: { in_reply_to_tweet_id: tid } }).catch(console.error);
+    return result;
+  }
+
+  async getAccessToken(uid?: string) {
+    const auth = await this.xAuthModel.findOne(uid ? { uid } : {}).sort({ updatedAt: -1 });
     if (!auth) {
       throw new BadRequestException("getAccessToken: access token not exists");
     }
@@ -82,6 +104,8 @@ export class XService {
     // return old access token if not expired
     if (auth.expireDate >= new Date()) {
       console.log(`Using accessToken of ${auth.uid}`);
+      // update last used
+      await auth.save();
       return auth.accessToken;
     }
 
