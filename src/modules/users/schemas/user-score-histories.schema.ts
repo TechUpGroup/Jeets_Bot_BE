@@ -3,7 +3,7 @@ import { Document } from "mongoose";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { EVENT_SCORE } from "common/constants/event";
 
-export const USER_SCORE_HISTORIES_MODEL = "user-score--histories";
+export const USER_SCORE_HISTORIES_MODEL = "user-score-histories";
 
 @Schema(Options)
 export class UserScoreHistories {

@@ -405,7 +405,8 @@ export class CampaignsService {
   // @Cron("0 0 * * 1", { name: "syncResetCampaign" })
   @Cron(CronExpression.EVERY_HOUR, { name: "syncResetCampaign" })
   async syncResetCampaign() {
-    const timestamp = Date.now();
+    const timestamp = new Date();
+    timestamp.setMinutes(0, 0, 0);
     const [campaigns, lastS] = await Promise.all([
       this.campaignsModel.find({ is_origin: true, type: CAMPAIGN_TYPE.HOLD_TOKEN }).sort({ cid: 1 }),
       this.campaignsModel.find().sort({ cid: -1 }).limit(1),
@@ -419,8 +420,8 @@ export class CampaignsService {
         type: campaign.type,
         details: campaign.details,
         score: campaign.score,
-        start_time: timestamp,
-        end_time: timestamp + TIMESTAM_HOUR - 1,
+        start_time: timestamp.getTime(),
+        end_time: timestamp.getTime() + TIMESTAM_HOUR - 1,
         status: true,
       });
     });
