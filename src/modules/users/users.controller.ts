@@ -1,7 +1,7 @@
 import { Auth } from "common/decorators/http.decorators";
 import { User } from "common/decorators/user.decorator";
 
-import { Body, Controller, Get, Param, Post, Put, Redirect } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Query, Redirect } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { UsersDocument } from "./schemas/users.schema";
@@ -9,6 +9,7 @@ import { UsersService } from "./users.service";
 import config from "common/config";
 import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
 import { HoldersService } from "modules/holders/holders.service";
+import { LeaderboardDto } from "./dto/user.dto";
 
 @ApiTags("Users")
 @Controller("users")
@@ -60,5 +61,18 @@ export class UsersController {
   @ApiOperation({ summary: "Connect twitter" })
   async twitterConnect(@User() user: UsersDocument, @Body() data: ConnectTwitterDto) {
     return this.usersService.twitterConnect(user, data);
+  }
+
+  @Auth()
+  @Post("twitter/reconnect")
+  @ApiOperation({ summary: "Connect twitter" })
+  async twitterReConnect(@User() user: UsersDocument, @Body() data: ConnectTwitterDto) {
+    return this.usersService.twitterConnect(user, data, true);
+  }
+
+  @Auth()
+  @Get("leaderboard")
+  leaderboard(@User() user: UsersDocument,@Query() query: LeaderboardDto) {
+    return this.usersService.leaderboard(user, query);
   }
 }

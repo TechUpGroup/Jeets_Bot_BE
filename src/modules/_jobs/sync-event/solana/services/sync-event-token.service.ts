@@ -9,7 +9,7 @@ import { HistoriesService } from "modules/histories/histories.service";
 import { HelperSolanaService } from "./_helper-solana.service";
 import { IEventParams } from "../interfaces/helper-solana.interface";
 import { Network } from "common/enums/network.enum";
-import { EVENT_CAMPAGIN_HISTORIES, EVENT_TOKEN } from "common/constants/event";
+import { EVENT_CAMPAGIN_HISTORIES, EVENT_SCORE, EVENT_TOKEN } from "common/constants/event";
 import { UsersService } from "modules/users/users.service";
 import BigNumber from "bignumber.js";
 import { CampaignsService } from "modules/campaigns/campaigns.service";
@@ -69,6 +69,7 @@ export class JobSyncEventTokenService {
       // save database
       const histories: any[] = [];
       const bulkUpdateScore: any[] = [];
+      const bulkUpdateScoreHistories: any[] = [];
       const bulkCreate: any[] = [];
       for (const event of events) {
         const { blockTime, transactionHash, logIndex, account, amount, is_buy, from, to } = event;
@@ -117,6 +118,12 @@ export class JobSyncEventTokenService {
             status: false,
             tx: transactionHash,
           });
+          bulkUpdateScoreHistories.push({
+            address: account,
+            event: EVENT_SCORE.TRANSFER_TOKEN,
+            score: minusScore,
+            timestamp: blockTime * 1000
+          })
         }
         if (event.event === EVENT_TOKEN.TRANSFER) {
           if ((acceptAddress || []).includes(from || "")) {
@@ -147,6 +154,12 @@ export class JobSyncEventTokenService {
               status: false,
               tx: transactionHash,
             });
+            bulkUpdateScoreHistories.push({
+              address: from,
+              event: EVENT_SCORE.TRANSFER_TOKEN,
+              score: minusScore,
+              timestamp: blockTime * 1000
+            })
           }
           if ((acceptAddress || []).includes(to || "")) {
             bulkUpdateScore.push({
@@ -176,6 +189,12 @@ export class JobSyncEventTokenService {
               status: false,
               tx: transactionHash,
             });
+            bulkUpdateScoreHistories.push({
+              address: to,
+              event: EVENT_SCORE.TRANSFER_TOKEN,
+              score: minusScore,
+              timestamp: blockTime * 1000
+            })
           }
         }
       }
@@ -184,6 +203,7 @@ export class JobSyncEventTokenService {
         histories.length ? this.historiesService.saveTokenHistories(histories) : undefined,
         bulkCreate.length ? this.campaignsService.saveUserCampagignHistories(bulkCreate) : undefined,
         bulkUpdateScore.length ? this.usersService.bulkWrite(bulkUpdateScore) : undefined,
+        bulkUpdateScoreHistories.length ? this.usersService.bulkWrite(bulkUpdateScoreHistories) : undefined,
       ]);
     } catch (err) {
       this.logsService.createLog("JobSyncEventTokenService -> handleEvents: ", err);

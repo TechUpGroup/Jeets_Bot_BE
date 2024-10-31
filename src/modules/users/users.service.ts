@@ -1,23 +1,31 @@
 import { PaginateModel, Types } from "mongoose";
 
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
 import { USERS_MODEL, UsersDocument } from "./schemas/users.schema";
 import { ErrorMessages } from "./users.constant";
 import { Network } from "common/enums/network.enum";
-import { telegramCheckAuth } from "common/utils";
+import { getCurrentMonth, getCurrentWeek, getCurrentYear, telegramCheckAuth } from "common/utils";
 import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
 import { XService } from "modules/_shared/x/x.service";
 import { ContractsService } from "modules/contracts/contracts.service";
+import { MissionsService } from "modules/missions/missions.service";
+import { USER_SCORE_HISTORIES_MODEL, UserScoreHistories, UserScoreHistoriesDocument } from "./schemas/user-score-histories.schema";
+import { LeaderboardDto } from "./dto/user.dto";
+import { LEADERBOARD_TYPE } from "common/enums/common";
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(USERS_MODEL)
     private readonly usersModel: PaginateModel<UsersDocument>,
+    @InjectModel(USER_SCORE_HISTORIES_MODEL)
+    private readonly userScoreHistoriesModel: PaginateModel<UserScoreHistoriesDocument>,
     private readonly xService: XService,
     private readonly contractsService: ContractsService,
+    @Inject(forwardRef(() => MissionsService))
+    private readonly missionsService: MissionsService,
   ) {}
 
   async queryUsers(filter: any, options: any) {
@@ -53,8 +61,8 @@ export class UsersService {
     return this.usersModel.create({ address, network });
   }
 
-  getAllUsers() {
-    return this.usersModel.find();
+  getAllUsersVerified() {
+    return this.usersModel.find({ $and: [{ twitter_verified_type: { $exists: true }}, { twitter_verified_type: { $ne: "none" }}]});
   }
 
   async getUser(id: string) {
@@ -275,11 +283,101 @@ export class UsersService {
     await this.xService.updateToken(userMe.data.id, resultToken);
 
     // save
-    userInfo.twitter_uid = userMe.data.id;
-    userInfo.twitter_username = userMe.data.username;
-    userInfo.twitter_avatar = userMe.data?.profile_image_url || "";
-    userInfo.twitter_verified_type = userMe.data?.verified_type || "";
-    userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
+    if (forceReconnect) {
+      userInfo.twitter_verified_type = userMe.data?.verified_type || "";
+      userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
+      await this.missionsService.addWLVoting(userInfo);
+    } else {
+      userInfo.twitter_uid = userMe.data.id;
+      userInfo.twitter_username = userMe.data.username;
+      userInfo.twitter_avatar = userMe.data?.profile_image_url || "";
+      userInfo.twitter_verified_type = userMe.data?.verified_type || "";
+      userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
+    }
     return await userInfo.save();
   }
+
+  // score
+  saveUserScoreHistories(items: UserScoreHistories | UserScoreHistories[]) {
+    if (Array.isArray(items)) {
+      return this.userScoreHistoriesModel.insertMany(items);
+    }
+    return this.userScoreHistoriesModel.create(items);
+  }
+
+  async leaderboard(user: UsersDocument, query: LeaderboardDto) {
+    const { type } = query;
+    let startTime = Date.now();
+    let endTime = Date.now();
+    if (type === LEADERBOARD_TYPE.WEEK) {
+      const time = getCurrentWeek();
+      startTime = time.startTime.getTime();
+      endTime = time.endTime.getTime();
+    }
+    if (type === LEADERBOARD_TYPE.MONTH) {
+      const time = getCurrentMonth();
+      startTime = time.startTime.getTime();
+      endTime = time.endTime.getTime();
+    }
+    if (type === LEADERBOARD_TYPE.YEAR) {
+      const time = getCurrentYear();
+      startTime = time.startTime.getTime();
+      endTime = time.endTime.getTime();
+    }
+    const allUsers = await this.userScoreHistoriesModel.aggregate([
+      {
+        $match: {
+          $and: [{ timestamp: { $gte: startTime } }, { timestamp: { $lte: endTime } }],
+        },
+      },
+      {
+        $group: {
+          _id: "$address",
+          totalScore: { $sum: "$score" },
+        },
+      },
+      {
+        $sort: {
+          totalScore: -1,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          totalScore: 1,
+        },
+      },
+    ]);
+    let userindex = allUsers.length;
+    let totalScore = 0;
+    const found = allUsers.findIndex((u) => u._id === user.address);
+    if (found !== -1) {
+      userindex = found + 1;
+      totalScore = allUsers[found].totalScore;
+    }
+    const datas = allUsers.slice(0, 50);
+    const addresses = datas.map((a) => a._id);
+    const userInfos = await this.getUsersByAddresses(addresses);
+    const topScores = datas.map((a, i) => {
+      const u = userInfos.find((b) => b.address === a._id);
+      return {
+        twitter_username: u?.twitter_username,
+        twitter_avatar: u?.twitter_avatar,
+        totalScore: a.totalScore,
+        rank: i + 1,
+      };
+    });
+    return {
+      user: {
+        twitter_username: user.twitter_username,
+        twitter_avatar: user?.twitter_avatar,
+        totalScore,
+        rank: userindex,
+      },
+      topScores,
+    };
+  }
+
+
+
 }

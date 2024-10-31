@@ -8,6 +8,11 @@ export enum SOCAIL_TYPE {
   REFERRAL = "Referral",
 }
 
+export enum MISSION_TYPE {
+  TASK = "Task",
+  CONDITION = "Condition",
+}
+
 export enum X_ACTION_TYPE {
   FOLLOW = "follow",
   LIKE = "like",
