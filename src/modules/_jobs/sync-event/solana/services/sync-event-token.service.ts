@@ -154,7 +154,7 @@ export class JobSyncEventTokenService {
             bulkUpdateScoreHistories.push({
               address: from,
               event: EVENT_SCORE.TRANSFER_TOKEN,
-              score: minusScore,
+              score: minusScore * -1,
               timestamp: blockTime * 1000
             })
           }
