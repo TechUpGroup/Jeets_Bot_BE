@@ -23,7 +23,7 @@ import { CampaignsModule } from "modules/campaigns/campaigns.module";
   providers: [
     HelperSolanaService,
     // JobSyncEventService,
-    // JobSyncEventVotingService,
+    JobSyncEventVotingService,
     JobSyncEventTokenService,
     JobSyncEventAirdropService,
   ],

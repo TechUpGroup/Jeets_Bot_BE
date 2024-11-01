@@ -66,11 +66,11 @@ export class SolanasService {
     this.solanaMap = new Map<Network, SolanaProvider>();
     this.programMap = new Map<string, anchor.Program<ScJeetsSol>>();
     for (const network of allNetworks) {
-      const connection: web3.Connection = new web3.Connection(config.listRPC[0], "recent");
-      const connectionConfirmed: web3.Connection = new web3.Connection(config.listRPC[1], "confirmed");
+      const connection: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "recent");
+      const connectionConfirmed: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "confirmed");
 
-      const connectionVoting: web3.Connection = new web3.Connection(config.listRPC[2], "recent");
-      const connectionConfirmedVoting: web3.Connection = new web3.Connection(config.listRPC[2], "confirmed");
+      const connectionVoting: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "recent");
+      const connectionConfirmedVoting: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "confirmed");
 
       const connectionAirdrop: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "recent");
       const connectionConfirmedAirdrop: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "confirmed");
