@@ -10,7 +10,6 @@ export class UserScoreHistories {
   @Prop({
     required: true,
     index: true,
-    unique: true,
     trim: true,
   })
   address: string;
