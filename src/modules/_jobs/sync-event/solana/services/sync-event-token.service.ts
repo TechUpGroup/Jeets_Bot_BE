@@ -200,7 +200,7 @@ export class JobSyncEventTokenService {
         histories.length ? this.historiesService.saveTokenHistories(histories) : undefined,
         bulkCreate.length ? this.campaignsService.saveUserCampagignHistories(bulkCreate) : undefined,
         bulkUpdateScore.length ? this.usersService.bulkWrite(bulkUpdateScore) : undefined,
-        bulkUpdateScoreHistories.length ? this.usersService.bulkWrite(bulkUpdateScoreHistories) : undefined,
+        bulkUpdateScoreHistories.length ? this.usersService.saveUserScoreHistories(bulkUpdateScoreHistories) : undefined,
       ]);
     } catch (err) {
       this.logsService.createLog("JobSyncEventTokenService -> handleEvents: ", err);
