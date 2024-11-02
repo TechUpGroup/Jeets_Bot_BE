@@ -103,7 +103,7 @@ export class MissionsService {
       user?.twitter_verified_type !== undefined &&
       user?.twitter_verified_type !== "none"
     ) {
-
+      await this.votingsService.addUserToWhiteList(user);
     };
   }
 
