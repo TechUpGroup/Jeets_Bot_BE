@@ -9,7 +9,7 @@ import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
 import { CreateMissionDto, MissionXVerifyDto, UpdateMissionDto } from "./dto/mission.dto";
 import { S3Service } from "modules/_shared/services/s3.service";
-import { SOCAIL_TYPE, X_ACTION_TYPE } from "common/enums/common";
+import { MISSION_TYPE, SOCAIL_TYPE, X_ACTION_TYPE } from "common/enums/common";
 import { TelegramService } from "modules/_shared/services/telegram.service";
 import { XService } from "modules/_shared/x/x.service";
 import { RedisService } from "modules/_shared/services/redis.service";
@@ -89,6 +89,24 @@ export class MissionsService {
     return check;
   }
 
+  async addWLVoting(user: UsersDocument, ratioPlus = 0) {
+    const [{ ratio }, checkHolder, checkAddWL] = await Promise.all([
+      this.getUserMissions(user),
+      this.holdersService.checkHolder(user),
+      this.votingsService.checkWLExistsByAddress(user.address)
+    ]);
+    if (
+      !checkAddWL &&
+      ratio + ratioPlus >= 100 &&
+      checkHolder &&
+      user.twitter_followers_count >= 2000 &&
+      user?.twitter_verified_type !== undefined &&
+      user?.twitter_verified_type !== "none"
+    ) {
+
+    };
+  }
+
   async action(user: UsersDocument, id: string, data: MissionXVerifyDto) {
     if (!user.twitter_uid) {
       throw new BadRequestException("User not connected twitter");
@@ -97,7 +115,7 @@ export class MissionsService {
       throw new BadRequestException("User not connected telegram");
     }
     const [mission, userMiss] = await Promise.all([
-      this.missionsModel.findOne({ _id: id, status: true }),
+      this.missionsModel.findOne({ _id: id, status: true, mission_type: MISSION_TYPE.TASK }),
       this.userMissionsModel.findOne({ mission: id, user: user._id }),
     ]);
 
@@ -106,7 +124,6 @@ export class MissionsService {
     }
 
     let check = false;
-    let checkVoting = false;
     if (!userMiss) {
       // verify
       if (mission.type === SOCAIL_TYPE.TELEGRAM) {
@@ -115,20 +132,9 @@ export class MissionsService {
       if (mission.type === SOCAIL_TYPE.X) {
         check = await this.actionTwitter(user, mission, data);
       }
-      if (check) {
-        const { ratio } = await this.getUserMissions(user);
-        if (ratio + mission.ratio >= 100) {
-          checkVoting = await this.holdersService.checkHolder(user);
-        }
-      }
       await Promise.all([
         check ? this.userMissionsModel.create({ user: user._id, mission: mission._id }) : undefined,
-        checkVoting &&
-        user.twitter_followers_count >= 2000 &&
-        user?.twitter_verified_type &&
-        user?.twitter_verified_type !== "none"
-          ? this.votingsService.addUserToWhiteList(user)
-          : undefined,
+        check ? this.addWLVoting(user, mission.ratio) : undefined,
       ]);
     }
     return check;

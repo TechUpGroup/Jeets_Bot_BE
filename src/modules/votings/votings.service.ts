@@ -21,8 +21,10 @@ import { SolanasService } from "modules/_shared/services/solana.service";
 import { HoldersService } from "modules/holders/holders.service";
 import axios from "axios";
 import { LogsService } from "modules/logs/logs.service";
-import { CampaignsService } from "modules/campaigns/campaigns.service";
 import { generateRandomString } from "common/utils/ethers";
+import { AirdropsService } from "modules/airdrops/airdrops.service";
+import { EVENT_SCORE } from "common/constants/event";
+import { UsersService } from "modules/users/users.service";
 
 @Injectable()
 export class VotingsService {
@@ -41,7 +43,9 @@ export class VotingsService {
     private readonly solanasService: SolanasService,
     private readonly holdersService: HoldersService,
     private readonly logsService: LogsService,
-    private readonly campaignsService: CampaignsService,
+    private readonly airdropsService: AirdropsService,
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
   ) {}
 
   async createVote(user: UsersDocument, wid: number) {
@@ -90,6 +94,7 @@ export class VotingsService {
     const keyExists = await this.userVotingsModel.find({ key: { $in: keys } }).distinct("key");
     const bulkCreate: any[] = [];
     const bulkUpdate: any[] = [];
+    const bulkUpdateScoreHistories: any[] = [];
     for (const data of datas) {
       if (!keyExists.includes(`${data.address}_${data.vid}_${data.wid}`)) {
         bulkCreate.push({
@@ -112,9 +117,19 @@ export class VotingsService {
             upsert: true,
           },
         });
+        bulkUpdateScoreHistories.push({
+          address: data.address,
+          event: EVENT_SCORE.VOTING,
+          score: 1,
+          timestamp: data.timestamp * 1000,
+        });
       }
     }
-    await Promise.all([this.userVotingsModel.insertMany(bulkCreate), this.votingDashboardsModel.bulkWrite(bulkUpdate)]);
+    await Promise.all([
+      bulkCreate.length ? this.userVotingsModel.insertMany(bulkCreate) : undefined,
+      bulkUpdate.length ? this.votingDashboardsModel.bulkWrite(bulkUpdate) : undefined,
+      bulkUpdateScoreHistories.length ? this.usersService.saveUserScoreHistories(bulkUpdateScoreHistories) : undefined,
+    ]);
   }
 
   async getUserVotings(user: UsersDocument) {
@@ -226,6 +241,11 @@ export class VotingsService {
     return this.whitelistsModel.create(data);
   }
 
+  async checkWLExistsByAddress(address: string) {
+    const res = await this.whitelistsModel.findOne({ address });
+    return !!res;
+  }
+
   async createSessionVote(auth: string, body: CreateSessionVoteDto) {
     if (auth !== config.admin) {
       throw new UnauthorizedException("Not permission");
@@ -315,13 +335,13 @@ export class VotingsService {
   async syncWinnerVotings() {
     const [listWinners, airdropInfos] = await Promise.all([
       this.getListWinnerYesterday(),
-      this.campaignsService.airdropInfos(),
+      this.airdropsService.airdropInfos(),
     ]);
     if (!airdropInfos.length) return;
     const bulkUpdate: any[] = [];
     const datas: any[] = [];
     const bulkCreate: any[] = [];
-    for (let i = 0; i <  listWinners.length; i++) {
+    for (let i = 0; i < listWinners.length; i++) {
       bulkUpdate.push({
         updateOne: {
           filter: {
@@ -333,7 +353,7 @@ export class VotingsService {
         },
       });
       datas.push({ address: listWinners[i].wl.address, x_account: listWinners[i].wl.name });
-      const foundAirdrop = airdropInfos.find(a => a.rank === i + 1);
+      const foundAirdrop = airdropInfos.find((a) => a.rank === i + 1);
       if (foundAirdrop) {
         for (const item of foundAirdrop.details) {
           bulkCreate.push({
@@ -353,7 +373,7 @@ export class VotingsService {
     }
     await Promise.all([
       bulkUpdate.length ? this.whitelistsModel.bulkWrite(bulkUpdate) : undefined,
-      bulkCreate.length ? this.campaignsService.saveUserAirdropHistories(bulkCreate) : undefined,
+      bulkCreate.length ? this.airdropsService.saveUserAirdropHistories(bulkCreate) : undefined,
       datas.length ? this.addSourceAddressToTracking(datas) : undefined,
     ]);
   }
