@@ -54,7 +54,7 @@ export class VotingsService {
       throw new BadRequestException("No connected social account");
     }
     if (!user?.twitter_verified_type || user.twitter_verified_type === "none") {
-      throw new BadRequestException("Twitter not verified");
+      throw new BadRequestException("Unverified X account");
     }
     if (user.twitter_followers_count < 2000) {
       throw new BadRequestException("Twitter follower minimum 2000");
@@ -71,7 +71,7 @@ export class VotingsService {
       throw new BadRequestException("No session active");
     }
     if (ratio < 100) {
-      throw new BadRequestException("Not completed task mission");
+      throw new BadRequestException("Incomplete Missions");
     }
     const [voter, userVote] = await Promise.all([
       this.whitelistsModel.findOne({ wid, status: true }),
