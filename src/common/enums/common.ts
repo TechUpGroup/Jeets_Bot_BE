@@ -27,4 +27,5 @@ export enum LEADERBOARD_TYPE {
   WEEK = "W",
   MONTH = "M",
   YEAR = "Y",
+  TOP_100 = "TOP_100"
 }

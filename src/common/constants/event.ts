@@ -21,6 +21,7 @@ export enum EVENT_CAMPAGIN_HISTORIES {
   RECEIVED = "Received",
   BUY = "Bought",
   SELL = "Sold",
+  VOTED = "Voted",
 }
 
 export enum EVENT_SCORE {

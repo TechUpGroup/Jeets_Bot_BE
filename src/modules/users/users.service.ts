@@ -15,6 +15,7 @@ import { USER_SCORE_HISTORIES_MODEL, UserScoreHistories, UserScoreHistoriesDocum
 import { LeaderboardDto } from "./dto/user.dto";
 import { LEADERBOARD_TYPE } from "common/enums/common";
 import config from "common/config";
+import { TIMESTAM_HOUR } from "common/constants/asset";
 
 @Injectable()
 export class UsersService {
@@ -338,6 +339,15 @@ export class UsersService {
       startTime = time.startTime.getTime();
       endTime = time.endTime.getTime();
     }
+    if (type === LEADERBOARD_TYPE.YEAR) {
+      const time = getCurrentYear();
+      startTime = time.startTime.getTime();
+      endTime = time.endTime.getTime();
+    }
+    if (type === LEADERBOARD_TYPE.TOP_100) {
+      startTime = new Date("10/01/2024").getTime();
+      endTime = Date.now() + TIMESTAM_HOUR;
+    }
     const allUsers = await this.userScoreHistoriesModel.aggregate([
       {
         $match: {
@@ -374,7 +384,7 @@ export class UsersService {
       userindex = found + 1;
       totalScore = allUsers[found].totalScore;
     }
-    const datas = allUsers.slice(0, 50);
+    const datas = allUsers.slice(0, 100);
     const addresses = datas.map((a) => a._id);
     const userInfos = await this.getUsersByAddresses(addresses);
     const topScores = datas.map((a, i) => {

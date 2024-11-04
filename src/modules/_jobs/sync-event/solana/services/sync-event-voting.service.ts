@@ -80,6 +80,7 @@ export class JobSyncEventVotingService {
             wid: uid,
             vid: sessionId,
             timestamp: blockTime,
+            transactionHash,
           })
         }
       }
