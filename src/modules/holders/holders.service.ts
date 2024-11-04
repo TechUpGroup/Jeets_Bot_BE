@@ -51,15 +51,13 @@ export class HoldersService {
   }
 
   async checkHolder(user: UsersDocument) {
-    const holders = await this.userHolder(user);
-    if (user?.partner && user.partner?.mint) {
-      const found = holders.find(
-        (a) => a.mint === user.partner.mint && BigNumber(a.amount.toString()).gte(user.partner.amount.toString()),
-      );
-      if (found) {
-        return true;
-      }
+    const [holders, { holdRequires }] = await Promise.all([
+      this.userHolder(user),
+      this.contractsService.getContractInfosByName(ContractName.TOKEN),
+    ]);
+    if (!holders.length || holders.every(a => BigNumber(a.amount.toString()).lt(holdRequires[a.mint]))) {
+      return false;
     }
-    return false;
+    return true;
   }
 }

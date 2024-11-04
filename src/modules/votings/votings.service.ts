@@ -23,9 +23,10 @@ import axios from "axios";
 import { LogsService } from "modules/logs/logs.service";
 import { generateRandomString } from "common/utils/ethers";
 import { AirdropsService } from "modules/airdrops/airdrops.service";
-import { EVENT_SCORE } from "common/constants/event";
+import { EVENT_CAMPAGIN_HISTORIES, EVENT_SCORE } from "common/constants/event";
 import { UsersService } from "modules/users/users.service";
 import { THRESHOLD_FOLLOWERS } from "common/constants/asset";
+import { CampaignsService } from "modules/campaigns/campaigns.service";
 
 @Injectable()
 export class VotingsService {
@@ -45,6 +46,7 @@ export class VotingsService {
     private readonly holdersService: HoldersService,
     private readonly logsService: LogsService,
     private readonly airdropsService: AirdropsService,
+    private readonly campaignsService: CampaignsService,
     @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
   ) {}
@@ -96,6 +98,7 @@ export class VotingsService {
     const bulkCreate: any[] = [];
     const bulkUpdate: any[] = [];
     const bulkUpdateScoreHistories: any[] = [];
+    const bulkCreateScoreCamppaigns: any[] = [];
     for (const data of datas) {
       if (!keyExists.includes(`${data.address}_${data.vid}_${data.wid}`)) {
         bulkCreate.push({
@@ -124,12 +127,20 @@ export class VotingsService {
           score: 1,
           timestamp: data.timestamp * 1000,
         });
+        bulkCreateScoreCamppaigns.push({
+          event: EVENT_CAMPAGIN_HISTORIES.RECEIVED,
+          cid: 0,
+          score: 1,
+          status: false,
+          tx: data.transactionHash,
+        });
       }
     }
     await Promise.all([
       bulkCreate.length ? this.userVotingsModel.insertMany(bulkCreate) : undefined,
       bulkUpdate.length ? this.votingDashboardsModel.bulkWrite(bulkUpdate) : undefined,
       bulkUpdateScoreHistories.length ? this.usersService.saveUserScoreHistories(bulkUpdateScoreHistories) : undefined,
+      bulkCreateScoreCamppaigns.length ? this.campaignsService.saveUserCampagignHistories(bulkCreateScoreCamppaigns) : undefined,
     ]);
   }
 

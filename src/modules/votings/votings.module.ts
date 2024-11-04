@@ -10,6 +10,7 @@ import { WHITELIST_MODEL, WhitelistsSchema } from "./schemas/whitelist.schema";
 import { MissionsModule } from "modules/missions/missions.module";
 import { HoldersModule } from "modules/holders/holders.module";
 import { AirdropsModule } from "modules/airdrops/airdrops.module";
+import { CampaignsModule } from "modules/campaigns/campaigns.module";
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { AirdropsModule } from "modules/airdrops/airdrops.module";
     forwardRef(() => UsersModule),
     forwardRef(() => MissionsModule),
     HoldersModule,
-    AirdropsModule
+    AirdropsModule,
+    CampaignsModule
   ],
   providers: [VotingsService],
   controllers: [VotingsController],
