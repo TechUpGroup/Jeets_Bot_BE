@@ -94,6 +94,13 @@ export class AirdropsService {
     return this.userAirdropsModel.aggregatePaginate(aggregate, { limit, page });
   }
 
+  async checkAirdropExists(user: UsersDocument) {
+    const count = await this.userAirdropsModel.countDocuments({
+      address: user.address,
+    });
+    return count ? true : false;
+  }
+
   async claim(user: UsersDocument, id: string) {
     const airdrop = await this.userAirdropsModel.findOne({ _id: id, status: false });
     if (!airdrop) {
@@ -140,8 +147,8 @@ export class AirdropsService {
       },
       {
         $sort: {
-          timestamp: -1
-        }
+          timestamp: -1,
+        },
       },
       {
         $lookup: {
@@ -172,9 +179,9 @@ export class AirdropsService {
       {
         $project: {
           pid: 1,
-          total: { $toString: "$total"},
+          total: { $toString: "$total" },
           pool_address: 1,
-          total_airdropped: { $toString: "$totalAirdropped"},
+          total_airdropped: { $toString: "$totalAirdropped" },
           timestamp: 1,
           detail: 1,
           status: 1,
