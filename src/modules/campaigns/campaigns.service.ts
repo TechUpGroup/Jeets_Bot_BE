@@ -48,8 +48,8 @@ export class CampaignsService {
       {
         $match: {
           $and: [
-            { start_time: { $gte: timestamp.getTime() } },
-            { end_time: { $lte: timestamp.getTime() } }
+            { start_time: { $lte: 1730742419000 } },
+            { end_time: { $gte: 1730742419000 } }
           ]
         },
       },
