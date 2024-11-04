@@ -243,7 +243,7 @@ export class UsersService {
         config.twitter.clientId
       }&redirect_uri=${encodeURIComponent(
         config.twitter.callbackURL,
-      )}&scope=tweet.read%20tweet.write%20users.read%20follows.read%20follows.write%20like.read%20like.write%20offline.access&state=twitter&code_challenge=challenge&code_challenge_method=plain`,
+      )}&scope=tweet.read%20tweet.write%20users.read%20follows.read%20follows.write%20like.read%20like.write%20offline.access&state=retwitter&code_challenge=challenge&code_challenge_method=plain`,
     };
   }
 
