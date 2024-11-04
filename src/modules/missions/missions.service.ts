@@ -17,6 +17,7 @@ import { REDIS_KEY } from "common/constants/redis";
 import { VotingsService } from "modules/votings/votings.service";
 import { UsersService } from "modules/users/users.service";
 import { HoldersService } from "modules/holders/holders.service";
+import { THRESHOLD_FOLLOWERS } from "common/constants/asset";
 
 @Injectable()
 export class MissionsService {
@@ -99,7 +100,7 @@ export class MissionsService {
       !checkAddWL &&
       ratio + ratioPlus >= 100 &&
       checkHolder &&
-      user.twitter_followers_count >= 2000 &&
+      user.twitter_followers_count >= THRESHOLD_FOLLOWERS &&
       user?.twitter_verified_type !== undefined &&
       user?.twitter_verified_type !== "none"
     ) {
