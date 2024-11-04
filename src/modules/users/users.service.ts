@@ -351,6 +351,11 @@ export class UsersService {
         },
       },
       {
+        $match: {
+          totalScore: { $gte: 0 },
+        },
+      },
+      {
         $sort: {
           totalScore: -1,
         },
@@ -362,7 +367,7 @@ export class UsersService {
         },
       },
     ]);
-    let userindex = allUsers.length;
+    let userindex = allUsers.length + 1;
     let totalScore = 0;
     const found = allUsers.findIndex((u) => u._id === user.address);
     if (found !== -1) {

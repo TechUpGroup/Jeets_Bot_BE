@@ -203,6 +203,66 @@ export class VotingsService {
     return { current, ratio, result };
   }
 
+  async getCurrentListWinner() {
+    {
+      const timestamp = new Date();
+      timestamp.setHours(0, 0, 0, 0);
+      const startTime = timestamp.getTime();
+      const session = await this.votingsModel.findOne({ start_time: startTime });
+      let result: string[] = [];
+      if (session) {
+        const res = await this.votingDashboardsModel
+          .aggregate([
+            {
+              $match: {
+                vid: session.vid,
+                count: { $gt: 0 },
+              },
+            },
+            {
+              $sort: {
+                count: -1,
+              },
+            },
+            {
+              $lookup: {
+                from: WHITELIST_MODEL,
+                localField: "wid",
+                foreignField: "wid",
+                as: "wl",
+                pipeline: [
+                  {
+                    $project: {
+                      _id: 0,
+                      address: 1,
+                      name: 1,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: "$wl",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+          ])
+          .limit(10);
+        result = res.map((a) => a.wl.address);
+      }
+      return result;
+    }
+  }
+
+  async checkVotingProcess(user: UsersDocument) {
+    const [exists, currentWinners] = await Promise.all([this.airdropsService.checkAirdropExists(user), this.getCurrentListWinner()]);
+    if (exists || currentWinners.includes(user.address)) {
+      return true;
+    }
+    return false;
+  }
+
   async addWhiteList(auth: string, body: CreateDto, file?: Express.Multer.File) {
     if (auth !== config.admin) {
       throw new UnauthorizedException("Not permission");

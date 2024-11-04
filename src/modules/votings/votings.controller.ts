@@ -26,6 +26,12 @@ export class VotingsController {
     return this.votingsService.getUserVotings(user);
   }
 
+  @Auth()
+  @Get("check")
+  checkVotingProcess(@User() user: UsersDocument) {
+    return this.votingsService.checkVotingProcess(user);
+  }
+
   @UseInterceptors(FileInterceptor("file"))
   @ApiConsumes("multipart/form-data")
   @ApiBody({
