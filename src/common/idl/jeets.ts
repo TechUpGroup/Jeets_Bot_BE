@@ -587,7 +587,7 @@ export type ScJeetsSol = {
 };
 
 export type Voting = {
-  "address": "943BTkiEkCvj93HvjQ5kz2X3NKYyWqswUV4BemyCVBZg",
+  "address": "2aHQveN7pim8VECx4Hi9HagmhGWCdDdrdnYuAzczphoY",
   "metadata": {
     "name": "voting",
     "version": "0.1.0",

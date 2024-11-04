@@ -185,7 +185,7 @@ class Config {
       "5uyEauM9x5nJ5KLUm8BYUQHYnkZ7E4J13skw3DAobV3o"
     ];
     const votes = [
-      "943BTkiEkCvj93HvjQ5kz2X3NKYyWqswUV4BemyCVBZg"
+      "2aHQveN7pim8VECx4Hi9HagmhGWCdDdrdnYuAzczphoY"
     ]
     const tokens = [
       {
