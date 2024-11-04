@@ -44,12 +44,13 @@ export class CampaignsService {
   async getListCampaigns(user: UsersDocument, query: PaginationDtoAndSortDto) {
     const { limit, page, sortBy = "start_time", sortType = -1 } = query;
     const timestamp = new Date();
-    timestamp.setHours(0, 0, 0, 0);
     const aggregate = this.campaignsModel.aggregate([
       {
         $match: {
-          start_time: timestamp.getTime(),
-          end_time: timestamp.getTime() + 86400000,
+          $and: [
+            { start_time: { $gte: timestamp.getTime() } },
+            { end_time: { $lte: timestamp.getTime() } }
+          ]
         },
       },
       {
