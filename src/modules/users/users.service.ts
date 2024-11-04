@@ -14,6 +14,7 @@ import { MissionsService } from "modules/missions/missions.service";
 import { USER_SCORE_HISTORIES_MODEL, UserScoreHistories, UserScoreHistoriesDocument } from "./schemas/user-score-histories.schema";
 import { LeaderboardDto } from "./dto/user.dto";
 import { LEADERBOARD_TYPE } from "common/enums/common";
+import config from "common/config";
 
 @Injectable()
 export class UsersService {
@@ -231,6 +232,19 @@ export class UsersService {
       console.error("Error:", error.message);
       throw new BadRequestException("Internal Server Error");
     }
+  }
+
+  async reStart(user: UsersDocument) {
+    if (!user.twitter_uid) {
+      throw new BadRequestException("User not connected twitter");
+    }
+    return {
+      redirectUrl: `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${
+        config.twitter.clientId
+      }&redirect_uri=${encodeURIComponent(
+        config.twitter.callbackURL,
+      )}&scope=tweet.read%20tweet.write%20users.read%20follows.read%20follows.write%20like.read%20like.write%20offline.access&state=twitter&code_challenge=challenge&code_challenge_method=plain`,
+    };
   }
 
   async twitterConnect(user: UsersDocument, { code }: ConnectTwitterDto, forceReconnect = false) {
