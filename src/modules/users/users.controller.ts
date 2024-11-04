@@ -63,6 +63,17 @@ export class UsersController {
     return this.usersService.twitterConnect(user, data);
   }
 
+  @Get("twitter/restart")
+  @ApiOperation({ summary: "Redirect to twitter to auth (Open this in browser)" })
+  @Redirect(
+    `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${
+      config.twitter.clientId
+    }&redirect_uri=${encodeURIComponent(
+      config.twitter.callbackURL.replace("login", "airdrop?tab=0"),
+    )}&scope=tweet.read%20tweet.write%20users.read%20follows.read%20follows.write%20like.read%20like.write%20offline.access&state=twitter&code_challenge=challenge&code_challenge_method=plain`,
+  )
+  async twitterReStart() {}
+
   @Auth()
   @Post("twitter/reconnect")
   @ApiOperation({ summary: "Connect twitter" })
