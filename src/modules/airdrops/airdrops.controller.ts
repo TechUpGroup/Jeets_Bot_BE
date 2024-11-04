@@ -4,7 +4,7 @@ import { AirdropsService } from "./airdrops.service";
 import { Auth } from "common/decorators/http.decorators";
 import { User } from "common/decorators/user.decorator";
 import { UsersDocument } from "modules/users/schemas/users.schema";
-import { CreateNewAirdropDto, UpdateAirdropDto } from "./dto/airdrops.dto";
+import { CreateNewAirdropDto, CreateNewPoolDto, UpdateAirdropDto, UpdatePoolDto } from "./dto/airdrops.dto";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 
 @ApiTags("Airdrops")
@@ -37,5 +37,20 @@ export class AirdropsController {
   @Get("info")
   airdropInfos() {
     return this.airdropsService.airdropInfos();
+  }
+
+  @Post("create-pool")
+  createNewPool(@Headers('auth') auth: string, @Body() body: CreateNewPoolDto) {
+    return this.airdropsService.createNewPool(auth, body);
+  }
+
+  @Post("update-pool/:pid")
+  updatePool(@Headers('auth') auth: string, @Param("pid") pid: number, @Body() body: UpdatePoolDto) {
+    return this.airdropsService.updatePool(auth, pid, body);
+  }
+
+  @Get("pool-infos")
+  poolInfos() {
+    return this.airdropsService.poolInfos();
   }
 }

@@ -1,15 +1,16 @@
 import { PaginateModel } from "mongoose";
 
-import { BadRequestException, forwardRef, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 
 import { UsersDocument } from "modules/users/schemas/users.schema";
 import config from "common/config";
-import { CreateNewAirdropDto, UpdateAirdropDto } from "./dto/airdrops.dto";
+import { CreateNewAirdropDto, CreateNewPoolDto, UpdateAirdropDto, UpdatePoolDto } from "./dto/airdrops.dto";
 import { PaginationDtoAndSortDto } from "common/dto/pagination.dto";
 import { USER_AIRDROPS_MODEL, UserAirdrops, UserAirdropsDocument } from "./schemas/user-airdrops.schema";
 import { SolanasService } from "modules/_shared/services/solana.service";
 import { AIRDROPS_MODEL, AirdropsDocument } from "./schemas/airdrops.schema";
+import { POOLS_MODEL, PoolsDocument } from "./schemas/pools.schema";
 
 @Injectable()
 export class AirdropsService {
@@ -18,6 +19,8 @@ export class AirdropsService {
     private readonly userAirdropsModel: PaginateModel<UserAirdropsDocument>,
     @InjectModel(AIRDROPS_MODEL)
     private readonly airdropsModel: PaginateModel<AirdropsDocument>,
+    @InjectModel(POOLS_MODEL)
+    private readonly poolsModel: PaginateModel<PoolsDocument>,
     private readonly solanasService: SolanasService,
   ) {}
 
@@ -79,6 +82,7 @@ export class AirdropsService {
           status: 1,
           tx: 1,
           detail: {
+            pid: "$detail.pid",
             mint: "$detail.mint",
             symbol: "$detail.symbol",
             decimal: "$detail.decimal",
@@ -102,5 +106,80 @@ export class AirdropsService {
       airdrop.nonce,
     );
     return tx.toString("base64");
+  }
+
+  // POOL
+  async createNewPool(auth: string, body: CreateNewPoolDto) {
+    if (auth !== config.admin) {
+      throw new UnauthorizedException("Not permission");
+    }
+    try {
+      return this.poolsModel.create(body);
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
+  }
+
+  async updatePool(auth: string, pid: number, body: UpdatePoolDto) {
+    if (auth !== config.admin) {
+      throw new UnauthorizedException("Not permission");
+    }
+    try {
+      return this.poolsModel.findOneAndUpdate({ pid }, { ...body }, { new: true });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
+  }
+
+  async poolInfos() {
+    return this.poolsModel.aggregate([
+      {
+        $match: {
+          status: true,
+        },
+      },
+      {
+        $sort: {
+          timestamp: -1
+        }
+      },
+      {
+        $lookup: {
+          from: USER_AIRDROPS_MODEL,
+          localField: "pid",
+          foreignField: "detail.pid",
+          as: "user_airdrops",
+          pipeline: [
+            {
+              $match: {
+                status: true,
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                airdropped: "$detail.amount",
+              },
+            },
+          ],
+        },
+      },
+      {
+        $addFields: {
+          totalAirdropped: { $sum: "$user_airdrops.airdropped" },
+        },
+      },
+      {
+        $project: {
+          pid: 1,
+          total: { $toString: "$total"},
+          pool_address: 1,
+          total_airdropped: { $toString: "$totalAirdropped"},
+          timestamp: 1,
+          detail: 1,
+          status: 1,
+        },
+      },
+    ]);
   }
 }
