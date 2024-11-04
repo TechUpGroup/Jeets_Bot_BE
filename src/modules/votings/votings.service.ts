@@ -125,7 +125,8 @@ export class VotingsService {
           timestamp: data.timestamp * 1000,
         });
         bulkCreateScoreCamppaigns.push({
-          event: EVENT_CAMPAGIN_HISTORIES.RECEIVED,
+          address: data.address,
+          event: EVENT_CAMPAGIN_HISTORIES.VOTED,
           cid: 0,
           score: 1,
           status: false,
