@@ -57,9 +57,6 @@ export class VotingsService {
     if (!user?.twitter_verified_type || user.twitter_verified_type === "none") {
       throw new BadRequestException("Unverified X account");
     }
-    if (user.twitter_followers_count < THRESHOLD_FOLLOWERS) {
-      throw new BadRequestException("Twitter follower minimum" + THRESHOLD_FOLLOWERS);
-    }
     const checkHolder = await this.holdersService.checkHolder(user);
     if (!checkHolder) {
       throw new BadRequestException("Hold token invalid");
