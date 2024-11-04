@@ -25,6 +25,7 @@ import { generateRandomString } from "common/utils/ethers";
 import { AirdropsService } from "modules/airdrops/airdrops.service";
 import { EVENT_SCORE } from "common/constants/event";
 import { UsersService } from "modules/users/users.service";
+import { THRESHOLD_FOLLOWERS } from "common/constants/asset";
 
 @Injectable()
 export class VotingsService {
@@ -56,8 +57,8 @@ export class VotingsService {
     if (!user?.twitter_verified_type || user.twitter_verified_type === "none") {
       throw new BadRequestException("Unverified X account");
     }
-    if (user.twitter_followers_count < 2000) {
-      throw new BadRequestException("Twitter follower minimum 2000");
+    if (user.twitter_followers_count < THRESHOLD_FOLLOWERS) {
+      throw new BadRequestException("Twitter follower minimum" + THRESHOLD_FOLLOWERS);
     }
     const checkHolder = await this.holdersService.checkHolder(user);
     if (!checkHolder) {
