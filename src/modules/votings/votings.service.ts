@@ -362,6 +362,7 @@ export class VotingsService {
             vid: listWinners[i].vid,
             nonce: generateRandomString(6) + Date.now().toFixed(),
             detail: {
+              pid: item.pid,
               mint: item.mint,
               amount: item.amount.toString(),
               symbol: item?.symbol || "",
