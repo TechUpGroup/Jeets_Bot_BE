@@ -97,6 +97,7 @@ export class VotingsService {
     const keyExists = await this.userVotingsModel.find({ key: { $in: keys } }).distinct("key");
     const bulkCreate: any[] = [];
     const bulkUpdate: any[] = [];
+    const bulkUpdateScore: any[] = [];
     const bulkUpdateScoreHistories: any[] = [];
     const bulkCreateScoreCamppaigns: any[] = [];
     for (const data of datas) {
@@ -135,11 +136,22 @@ export class VotingsService {
           status: false,
           tx: data.transactionHash,
         });
+        bulkUpdateScore.push({
+          updateOne: {
+            filter: {
+              address: data.address,
+            },
+            update: {
+              $inc: { score: 1 },
+            },
+          },
+        });
       }
     }
     await Promise.all([
       bulkCreate.length ? this.userVotingsModel.insertMany(bulkCreate) : undefined,
       bulkUpdate.length ? this.votingDashboardsModel.bulkWrite(bulkUpdate) : undefined,
+      bulkUpdateScore.length ? this.usersService.bulkWrite(bulkUpdateScore) : undefined,
       bulkUpdateScoreHistories.length ? this.usersService.saveUserScoreHistories(bulkUpdateScoreHistories) : undefined,
       bulkCreateScoreCamppaigns.length ? this.campaignsService.saveUserCampagignHistories(bulkCreateScoreCamppaigns) : undefined,
     ]);
