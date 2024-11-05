@@ -513,10 +513,11 @@ export class SolanasService {
         tx?.meta?.postTokenBalances &&
         tx?.meta?.preTokenBalances
       ) {
-        const postToken = tx?.meta?.postTokenBalances.find((a) => a.mint === mintAddress.toString());
-        const preToken = tx?.meta?.preTokenBalances.find((a) => a.mint === mintAddress.toString());
-        if (postToken && preToken) {
+        const postTokens = tx?.meta?.postTokenBalances.filter((a) => a.mint === mintAddress.toString());
+        const preTokens = tx?.meta?.preTokenBalances.filter((a) => a.mint === mintAddress.toString());
+        for (const postToken of postTokens) {
           const postAmount = postToken?.uiTokenAmount?.amount || "0";
+          const preToken = preTokens.find(a => a.owner === postToken.owner);
           const preAmount = preToken?.uiTokenAmount?.amount || "0";
           if (preAmount !== "0" || postAmount !== "0")
             allEvents.push({
