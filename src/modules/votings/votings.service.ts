@@ -27,6 +27,7 @@ import { EVENT_CAMPAGIN_HISTORIES, EVENT_SCORE } from "common/constants/event";
 import { UsersService } from "modules/users/users.service";
 import { THRESHOLD_FOLLOWERS } from "common/constants/asset";
 import { CampaignsService } from "modules/campaigns/campaigns.service";
+import { EXCLUDE_WALLET } from "common/constants/airdrop";
 
 @Injectable()
 export class VotingsService {
@@ -375,6 +376,11 @@ export class VotingsService {
                 as: "wl",
                 pipeline: [
                   {
+                    $match: {
+                      address: { $nin: EXCLUDE_WALLET }
+                    }
+                  },
+                  {
                     $project: {
                       _id: 0,
                       address: 1,
@@ -390,6 +396,11 @@ export class VotingsService {
                 preserveNullAndEmptyArrays: true,
               },
             },
+            {
+              $match: {
+                wl: { $ne: null }
+              }
+            }
           ])
           .limit(10);
       }
