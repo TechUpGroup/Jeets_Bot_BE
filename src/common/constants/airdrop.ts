@@ -6,3 +6,25 @@ export const AIRDROP_RATIO = {
   4: 0.05,
   5: 0.02,
 };
+
+export const EXCLUDE_WALLET = [
+  "5h49T7ziYwUG6wZckEoRdhrxdHh9YZaGKw5qsu5D2HJP",
+  "2Z6jjJN3Rn5N8ABmbfmJ7nkTQALniNMvzxzbh1mG8NyN",
+  "6q2jXuMjXtsUc7NSKrqS4SHHYjpeVs81Xoq4TFTbXLa2",
+  "6R9DP2GMWb7ENBdYHKZAqSRt6ePJWoeD72J4p1fzcH2T",
+  "Ektdr2vokPTghS1YH732bLncF9bWLs5pNoXKS3y3UDrU",
+  "DAbZhopwsEUwCj3cDmozn5sDzwkpXtiTec71Arw3evAi",
+  "AuZZeuVKksABrx7wNMXoqUX5B6zCveJXtUd5tVtpJccv",
+  "CSdMW94ETjxxXi8qqFtMaaCDKHzjQzAYaGFwAD3FAnUT",
+  "CmHUuptasDjzzDdvyxQjgJzL6BCSGWMFjDSrS1ctzVBy",
+  "2bdHCm9YTCTL6nw3fGxTktHApzVQpa79w3PmanEZTEHG",
+  "92ReQygPUz5n2ssWdJR4hykW4h8cLGftqXuMqXjftGKu",
+  "BFizpwse1HaYVb95HhuKeJf8bQmF8ieGqbTBbu1b1j1r",
+  "CbRTpZqoQkAiCTo6UHidntJJfzsTRenSeZ3gd5VewsFG",
+  "Gd5ofsC1mCApemXh2wSSVHMpkqFH3uPrHbiTh77LTKx6",
+  "6r7zjN1qCEDhCtwXdZm9JBhEqYXWR1YbdX2Cv9tAXW8A",
+  "B337emetWxidX69pJoF3ms9NpyTQy6ocMJkpTUiyo5vp",
+  "24LWwYqoA7JRS7WjYgtB2ouTevoA9oA3KJL384YgUfN1",
+  "EBRcn9CXsyQYq8KismwfXo3EK74dSGZCZr6c7S3ssdpm",
+  "3shJKqy4s9v6cSscqiYsaCQf47gM2G7p76TgWrNg9x5K",
+]
