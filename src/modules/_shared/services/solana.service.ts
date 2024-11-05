@@ -12,6 +12,7 @@ import { common, vaultIDL, votingIDL } from "common/idl/pool";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
 import { ScJeetsSol, VaultSolana, Voting } from "common/idl/jeets";
+import BigNumber from "bignumber.js";
 
 interface SolanaProvider {
   connection: web3.Connection;
@@ -37,7 +38,7 @@ export interface SolanaEvents {
   account?: string;
   uid?: number;
   sessionId?: number;
-  amount?: number;
+  amount?: string;
   is_buy?: boolean;
   from?: string;
   to?: string;
@@ -515,17 +516,17 @@ export class SolanasService {
         const postToken = tx?.meta?.postTokenBalances.find((a) => a.mint === mintAddress.toString());
         const preToken = tx?.meta?.preTokenBalances.find((a) => a.mint === mintAddress.toString());
         if (postToken && preToken) {
-          const postAmount = postToken?.uiTokenAmount?.uiAmount || 0;
-          const preAmount = preToken?.uiTokenAmount?.uiAmount || 0;
-          if (preAmount !== 0 && postAmount !== 0)
+          const postAmount = postToken?.uiTokenAmount?.amount || "0";
+          const preAmount = preToken?.uiTokenAmount?.amount || "0";
+          if (preAmount !== "0" || postAmount !== "0")
             allEvents.push({
               event: EVENT_TOKEN.SWAP,
               transactionHash: tx.transaction.signatures[0],
               logIndex: 1,
               blockTime: tx.blockTime || 0,
-              amount: postAmount > preAmount ? postAmount - preAmount : preAmount - postAmount,
+              amount: BigNumber(postAmount).gt(preAmount) ? BigNumber(postAmount).minus(preAmount).toFixed(0) : BigNumber(preAmount).minus(postAmount).toFixed(0),
               account: postToken?.owner || "",
-              is_buy: postAmount > preAmount ? true : false,
+              is_buy: BigNumber(postAmount).gt(preAmount) ? true : false,
             });
         }
       }
