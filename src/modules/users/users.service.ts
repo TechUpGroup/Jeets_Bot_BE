@@ -388,17 +388,20 @@ export class UsersService {
       userindex = found + 1;
       totalScore = allUsers[found].totalScore;
     }
-    const datas = allUsers.slice(0, 100);
+    const datas = allUsers.slice(0, 110);
     const addresses = datas.map((a) => a._id);
     const userInfos = await this.getUsersByAddresses(addresses);
-    const topScores = datas.map((a, i) => {
+    const topScores: any[] = [];
+    datas.forEach((a, i) => {
       const u = userInfos.find((b) => b.address === a._id);
-      return {
-        twitter_username: u?.twitter_username,
-        twitter_avatar: u?.twitter_avatar,
-        totalScore: a.totalScore,
-        rank: i + 1,
-      };
+      if (u?.twitter_uid) {{
+        topScores.push( {
+          twitter_username: u?.twitter_username,
+          twitter_avatar: u?.twitter_avatar,
+          totalScore: a.totalScore,
+          rank: i + 1,
+        });
+      }}
     });
     return {
       user: {
@@ -407,7 +410,7 @@ export class UsersService {
         totalScore,
         rank: userindex,
       },
-      topScores,
+      topScores: topScores.slice(0, 100),
     };
   }
 
