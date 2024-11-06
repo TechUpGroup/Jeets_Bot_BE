@@ -379,11 +379,6 @@ export class VotingsService {
                 as: "wl",
                 pipeline: [
                   {
-                    $match: {
-                      address: { $nin: EXCLUDE_WALLET }
-                    }
-                  },
-                  {
                     $project: {
                       _id: 0,
                       address: 1,
@@ -399,11 +394,6 @@ export class VotingsService {
                 preserveNullAndEmptyArrays: true,
               },
             },
-            {
-              $match: {
-                wl: { $ne: null }
-              }
-            }
           ])
           .limit(10);
       }
@@ -449,22 +439,24 @@ export class VotingsService {
         },
       });
       datas.push({ address: listWinners[i].wl.address, x_account: listWinners[i].wl.name });
-      const foundAirdrop = airdropInfos.find((a) => a.rank === i + 1);
-      if (foundAirdrop) {
-        for (const item of foundAirdrop.details) {
-          bulkCreate.push({
-            address: listWinners[i].wl.address,
-            vid: listWinners[i].vid,
-            nonce: generateRandomString(6) + Date.now().toFixed(),
-            detail: {
-              pid: item.pid,
-              mint: item.mint,
-              amount: item.amount.toString(),
-              symbol: item?.symbol || "",
-              decimal: item?.decimal || "",
-            },
-            status: false,
-          });
+      if (!EXCLUDE_WALLET.includes(listWinners[i].wl.address)) {
+        const foundAirdrop = airdropInfos.find((a) => a.rank === i + 1);
+        if (foundAirdrop) {
+          for (const item of foundAirdrop.details) {
+            bulkCreate.push({
+              address: listWinners[i].wl.address,
+              vid: listWinners[i].vid,
+              nonce: generateRandomString(6) + Date.now().toFixed(),
+              detail: {
+                pid: item.pid,
+                mint: item.mint,
+                amount: item.amount.toString(),
+                symbol: item?.symbol || "",
+                decimal: item?.decimal || "",
+              },
+              status: false,
+            });
+          }
         }
       }
     }
