@@ -63,7 +63,7 @@ export class JobSyncEventTokenService {
       const froms = eventTransfer.map((a) => a.from || "");
       const tos = eventTransfer.map((a) => a.to || "");
       const addresses = accounts.concat(froms).concat(tos);
-      const userExists = await this.usersService.getUsersByAddresses(addresses);
+      const userExists = await this.usersService.getUserSocialConnectedByAddresses(addresses);
       const acceptAddress = userExists.map((a) => a.address);
 
       // save database
@@ -110,7 +110,7 @@ export class JobSyncEventTokenService {
             detail: {
               mint: contract_address,
               amount,
-              symbol: symbol || "$MOON",
+              symbol: symbol || "🌕",
               decimal: decimal || 6,
             },
             score: minusScore,
@@ -145,7 +145,7 @@ export class JobSyncEventTokenService {
               detail: {
                 mint: contract_address,
                 amount,
-                symbol: symbol || "$MOON",
+                symbol: symbol || "🌕",
                 decimal: decimal || 6,
               },
               score: minusScore * -1,
@@ -180,7 +180,7 @@ export class JobSyncEventTokenService {
               detail: {
                 mint: contract_address,
                 amount,
-                symbol: symbol || "$MOON",
+                symbol: symbol || "🌕",
                 decimal: decimal || 6,
               },
               score: minusScore,

@@ -99,6 +99,10 @@ export class UsersService {
     return this.usersModel.find({ address: { $in: addresses } });
   }
 
+  async getUserSocialConnectedByAddresses(addresses: string[]) {
+    return this.usersModel.find({ address: { $in: addresses }, telegram_uid: { $exists: true }, twitter_uid: { $exists: true } });
+  }
+
   async findUserByAddress(address: string) {
     const user = await this.usersModel.findOne({ address });
     return user;
