@@ -280,8 +280,13 @@ export class VotingsService {
     }
   }
 
+  async checkWLStatus(user: UsersDocument) {
+    const res = await this.whitelistsModel.findOne({ address: user.address, status: false })
+    return !!res
+  }
+
   async checkVotingProcess(user: UsersDocument) {
-    const [exists, currentWinners] = await Promise.all([this.airdropsService.checkAirdropExists(user), this.getCurrentListWinner()]);
+    const [exists, currentWinners] = await Promise.all([this.checkWLStatus(user), this.getCurrentListWinner()]);
     if (exists || currentWinners.includes(user.address)) {
       return true;
     }
