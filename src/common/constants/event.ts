@@ -10,6 +10,11 @@ export enum EVENT_AIRDROP {
   CLAIM = "claimed",
 }
 
+export enum EVENT_CHAD {
+  DEPOSITED = "deposited",
+  CLAIMED = "claimed",
+}
+
 export enum EVENT_TOKEN {
   SWAP = "Swap",
   TRANSFER = "transferChecked",

@@ -7,6 +7,9 @@ import {
   AIRDROP_HISTORIES_MODEL,
   AirdropHistories,
   AirdropHistoriesDocument,
+  CHAD_HISTORIES_MODEL,
+  ChadHistories,
+  ChadHistoriesDocument,
   HISTORIES_MODEL,
   Histories,
   HistoriesDocument,
@@ -33,6 +36,8 @@ export class HistoriesService {
     private readonly tokenHistoriesModel: PaginateModel<TokenHistoriesDocument>,
     @InjectModel(AIRDROP_HISTORIES_MODEL)
     private readonly airdropHistoriesModel: PaginateModel<AirdropHistoriesDocument>,
+    @InjectModel(CHAD_HISTORIES_MODEL)
+    private readonly chadHistoriesModel: PaginateModel<ChadHistoriesDocument>,
   ) {}
 
   async findTransactionTokenHashExists(hashes: string[]) {
@@ -81,6 +86,22 @@ export class HistoriesService {
       return this.airdropHistoriesModel.insertMany(items);
     }
     return this.airdropHistoriesModel.create(items);
+  }
+
+  async findTransactionChadHashExists(hashes: string[]) {
+    if (!hashes.length) return [];
+    const result = await this.chadHistoriesModel.find(
+      { transaction_hash_index: { $in: hashes } },
+      { transaction_hash_index: 1 },
+    );
+    return result.map((o) => o.transaction_hash_index as string);
+  }
+
+  saveChadHistories(items: ChadHistories | ChadHistories[]) {
+    if (Array.isArray(items)) {
+      return this.chadHistoriesModel.insertMany(items);
+    }
+    return this.chadHistoriesModel.create(items);
   }
 
   async findTransactionHashExists(hashes: string[]) {

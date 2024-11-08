@@ -1,5 +1,5 @@
 import { Options,  } from "common/config/mongoose.config";
-import { Document } from "mongoose";
+import { Document, SchemaTypes, Types } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Network } from "common/enums/network.enum";
@@ -56,6 +56,12 @@ export class Users {
 
   @Prop({ required: false, type: DetailsSchema  })
   partner: Details;
+
+  @Prop({ required: true, default: false })
+  is_claimed: boolean;
+
+  @Prop({ required: false, type: SchemaTypes.Decimal128, default: 0, min: 0  })
+  sol_deposited: Types.Decimal128;
 }
 export type UsersDocument = Users & Document;
 export const UsersSchema = SchemaFactory.createForClass(Users);

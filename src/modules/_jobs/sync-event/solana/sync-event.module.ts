@@ -10,6 +10,7 @@ import { JobSyncEventTokenService } from "./services/sync-event-token.service";
 import { JobSyncEventAirdropService } from "./services/sync-event-airdrop.service";
 import { AirdropsModule } from "modules/airdrops/airdrops.module";
 import { CampaignsModule } from "modules/campaigns/campaigns.module";
+import { WithdrawsModule } from "modules/withdraw/withdraw.module";
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { CampaignsModule } from "modules/campaigns/campaigns.module";
     forwardRef(() => HistoriesModule),
     VotingsModule,
     CampaignsModule,
-    AirdropsModule
+    AirdropsModule,
+    WithdrawsModule
   ],
   providers: [
     HelperSolanaService,

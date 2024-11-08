@@ -7,7 +7,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { AnchorProvider, BN, Wallet, web3 } from "@project-serum/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import { bs58 } from "@project-serum/anchor/dist/cjs/utils/bytes";
-import { EVENT, EVENT_AIRDROP, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
+import { EVENT, EVENT_AIRDROP, EVENT_CHAD, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
 import { common, vaultIDL, votingIDL } from "common/idl/pool";
 import { LogsService } from "modules/logs/logs.service";
 import { TOTAL_AMOUNT } from "common/constants/asset";
@@ -322,6 +322,37 @@ export class SolanasService {
     }
   }
 
+  async chadClaimTokenInstruction(userAddress: string, mint: string, amount: string, nonce: string) {
+    const network = Network.solana;
+    const program = new anchor.Program(
+      vaultIDL as VaultSolana,
+      this.getProviderAirdrop(network) as anchor.AnchorProvider,
+    );
+    const operator = this.getSigner(network, SignerType.authority);
+    const userPubkey = new web3.PublicKey(userAddress);
+    try {
+      const transaction = new web3.Transaction();
+      const claimInstruction = await program.methods
+        .claim(
+          new BN(amount),
+          nonce
+        )
+        .accounts({
+          mint,
+          receiver: userPubkey,
+        })
+        .instruction();
+      transaction.add(claimInstruction);
+      transaction.recentBlockhash = (await this.getConnectionAirdrop(network).getLatestBlockhash()).blockhash;
+      transaction.feePayer = userPubkey;
+      transaction.add(modifyComputeUnits).add(addPriorityFee);
+      transaction.partialSign(operator);
+      return transaction.serialize({ requireAllSignatures: false, verifySignatures: false });
+    } catch (e) {
+      throw new BadRequestException(e);
+    }
+  }
+
   async getAllEventTransactions(
     network: Network,
     eventParser: anchor.EventParser,
@@ -461,6 +492,93 @@ export class SolanasService {
     return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
   }
 
+  async getAllEventChadClaimTransactions(
+    network: Network,
+    eventParser: anchor.EventParser,
+    mintAddress: web3.PublicKey,
+    until?: string,
+    limit = 10,
+  ): Promise<TransferResponse> {
+    const allEvents: SolanaEvents[] = [];
+    let before;
+    const txs: any[] = [];
+    while (true) {
+      const tmpTxs = await this.getConnectionConfirmed(network).getSignaturesForAddress(
+        mintAddress,
+        {
+          before,
+          until,
+          limit,
+        },
+        "confirmed",
+      );
+      if (!tmpTxs.length || tmpTxs[tmpTxs.length - 1].signature === until) {
+        break;
+      }
+      before = tmpTxs[tmpTxs.length - 1].signature;
+      txs.push(...tmpTxs);
+    }
+    if (!txs.length) return { signatureLatest: undefined, solanaEvents: [] };
+    const txSuccess = txs
+      .reverse()
+      .filter((tx) => tx.err === null)
+      .map((tx) => tx.signature);
+    const round = Math.ceil(txSuccess.length / limit);
+    const transactions: any[] = [];
+    for (let i = 0; i < round; i++) {
+      const start = i * limit;
+      const end = start + limit > txSuccess.length ? txSuccess.length : start + limit;
+      const tmpTransactions = await this.getConnectionConfirmed(network).getParsedTransactions(
+        txSuccess.slice(start, end),
+        {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        },
+      );
+      transactions.push(...tmpTransactions);
+    }
+    for (const tx of transactions) {
+      if (tx && tx?.meta && tx?.meta?.logMessages) {
+        try {
+          const events = eventParser.parseLogs(tx?.meta?.logMessages);
+          for (const event of events) {
+            const { data, name } = event as any;
+            if (Object.values(EVENT_CHAD).includes(name)) {
+              allEvents.push({
+                event: event.name,
+                transactionHash: tx.transaction.signatures[0],
+                logIndex: name === EVENT_CHAD.CLAIMED ? 0 : 1,
+                blockTime: tx.blockTime || 0,
+                account: data?.account ? data?.account.toString() : "",
+                nonce: data?.nonce ? data?.nonce.toString() : "",
+              });
+            }
+          }
+        } catch {}
+      }
+      if (tx && tx?.transaction && tx?.transaction?.message?.instructions) {
+        for (const instruction of tx?.transaction?.message?.instructions as any[]) {
+          if (
+            instruction?.program === "system" && instruction?.parsed?.type === "transfer"
+          ) {
+            const { info } = instruction.parsed;
+            allEvents.push({
+              event: EVENT_CHAD.DEPOSITED,
+              transactionHash: tx.transaction.signatures[0],
+              logIndex: 1,
+              blockTime: tx.blockTime || 0,
+              amount: info?.tokenAmount?.amount || 0,
+              from: info?.source,
+              to: info?.destination,
+            });
+          }
+        }
+      }
+    }
+
+    return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
+  }
+
   async getAllEventTransferToken(
     network: Network,
     mintAddress: web3.PublicKey,
@@ -554,6 +672,74 @@ export class SolanasService {
               amount: info?.tokenAmount?.amount || 0,
               from,
               to,
+            });
+          }
+        }
+      }
+    }
+    return { signatureLatest: txs[0].signature, solanaEvents: allEvents };
+  }
+
+  async getAllEventTransferSol(
+    network: Network,
+    mintAddress: web3.PublicKey,
+    until?: string,
+    limit = 10,
+  ): Promise<TransferResponse> {
+    const allEvents: SolanaEvents[] = [];
+    let before;
+    const txs: any[] = [];
+    while (true) {
+      const tmpTxs = await this.getConnectionConfirmed(network).getSignaturesForAddress(
+        mintAddress,
+        {
+          before,
+          until,
+          limit,
+        },
+        "confirmed",
+      );
+      if (!tmpTxs.length || tmpTxs[tmpTxs.length - 1].signature === until) {
+        break;
+      }
+      before = tmpTxs[tmpTxs.length - 1].signature;
+      txs.push(...tmpTxs);
+    }
+    if (!txs.length) return { signatureLatest: undefined, solanaEvents: [] };
+    const txSuccess = txs
+      .reverse()
+      .filter((tx) => tx.err === null)
+      .map((tx) => tx.signature);
+    const round = Math.ceil(txSuccess.length / limit);
+    const transactions: any[] = [];
+    for (let i = 0; i < round; i++) {
+      const start = i * limit;
+      const end = start + limit > txSuccess.length ? txSuccess.length : start + limit;
+      const tmpTransactions = await this.getConnectionConfirmed(network).getParsedTransactions(
+        txSuccess.slice(start, end),
+        {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        },
+      );
+      transactions.push(...tmpTransactions);
+    }
+
+    for (const tx of transactions) {
+      if (tx && tx?.transaction && tx?.transaction?.message?.instructions) {
+        for (const instruction of tx?.transaction?.message?.instructions as any[]) {
+          if (
+            instruction?.program === "system" && instruction?.parsed?.type === "transfer"
+          ) {
+            const { info } = instruction.parsed;
+            allEvents.push({
+              event: EVENT_CHAD.DEPOSITED,
+              transactionHash: tx.transaction.signatures[0],
+              logIndex: 1,
+              blockTime: tx.blockTime || 0,
+              amount: info?.tokenAmount?.amount || 0,
+              from: info?.source,
+              to: info?.destination,
             });
           }
         }

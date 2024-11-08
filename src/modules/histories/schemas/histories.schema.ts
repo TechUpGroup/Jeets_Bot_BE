@@ -4,12 +4,13 @@ import { Document, SchemaTypes, Types } from "mongoose";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Network } from "common/enums/network.enum";
 import { isNil } from "lodash";
-import { EVENT, EVENT_AIRDROP, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
+import { EVENT, EVENT_AIRDROP, EVENT_CHAD, EVENT_TOKEN, EVENT_VOTING } from "common/constants/event";
 
 export const HISTORIES_MODEL = "histories";
 export const VOTING_HISTORIES_MODEL = "voting-histories";
 export const TOKEN_HISTORIES_MODEL = "token-histories";
 export const AIRDROP_HISTORIES_MODEL = "airdrop-histories";
+export const CHAD_HISTORIES_MODEL = "chad-histories";
 
 @Schema(Options)
 export class Histories {
@@ -163,3 +164,39 @@ export class TokenHistories {
 }
 export type TokenHistoriesDocument = TokenHistories & Document;
 export const TokenHistoriesSchema = SchemaFactory.createForClass(TokenHistories);
+
+@Schema(Options)
+export class ChadHistories {
+  @Prop({ required: true, index: true, enum: EVENT_CHAD })
+  event: EVENT_CHAD;
+
+  @Prop({ required: true, index: true, enum: Network })
+  network: Network;
+
+  @Prop({ required: true, index: true })
+  contract_address: string;
+
+  @Prop({ required: true, index: true })
+  transaction_hash: string;
+
+  @Prop({ required: true, index: true })
+  log_index: number;
+
+  @Prop({
+    required: false,
+    unique: true,
+    sparse: true,
+    default: function () {
+      const { transaction_hash, log_index, network } = this;
+      if (transaction_hash && !isNil(log_index) && network) {
+        return `${transaction_hash}_${log_index}_${network}`;
+      }
+    },
+  })
+  transaction_hash_index?: string;
+
+  @Prop({ required: true, index: true })
+  timestamp: number;
+}
+export type ChadHistoriesDocument = ChadHistories & Document;
+export const ChadHistoriesSchema = SchemaFactory.createForClass(ChadHistories);

@@ -198,11 +198,19 @@ class Config {
     const airdrops = [
       "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG"
     ]
+    const chadClaimeds = [
+      "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG"
+    ]
+    const chadDeposteds = [
+      "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG"
+    ]
     return {
       pools,
       votes,
       tokens,
-      airdrops
+      airdrops,
+      chadClaimeds,
+      chadDeposteds,
     };
   }
 

@@ -167,6 +167,22 @@ export class ContractsService {
             network,
           });
         }
+        for (const address of config.getContract().chadClaimeds) {
+          contractCreate.push({
+            contract_address: address,
+            tx_synced: undefined,
+            name: ContractName.CHAD_CLAIM,
+            network,
+          });
+        }
+        for (const address of config.getContract().chadDeposteds) {
+          contractCreate.push({
+            contract_address: address,
+            tx_synced: undefined,
+            name: ContractName.CHAD_DEPOSIT,
+            network,
+          });
+        }
       }
       for (const network of allNetworks) {
         for (const { mint, totalSupply, decimal, symbol } of config.getContract().tokens) {

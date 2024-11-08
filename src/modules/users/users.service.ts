@@ -190,8 +190,8 @@ export class UsersService {
     return !!user;
   }
 
-  updateBalance(id: string, amount: number) {
-    return this.usersModel.updateOne({ _id: new Types.ObjectId(id) }, { $inc: { balance: amount } });
+  updateBalance(user: UsersDocument, data: any) {
+    return this.usersModel.updateOne({ _id: user._id }, { ...data });
   }
 
   async updatePartner(user: UsersDocument, mint: string) {

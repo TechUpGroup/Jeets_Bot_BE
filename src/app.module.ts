@@ -18,6 +18,7 @@ import { MissionsModule } from "modules/missions/missions.module";
 import { HoldersModule } from "modules/holders/holders.module";
 import { CampaignsModule } from "modules/campaigns/campaigns.module";
 import { AirdropsModule } from "modules/airdrops/airdrops.module";
+import { WithdrawsModule } from "modules/withdraw/withdraw.module";
 
 @Module({
   imports: [
@@ -45,7 +46,8 @@ import { AirdropsModule } from "modules/airdrops/airdrops.module";
     VotingsModule,
     HoldersModule,
     CampaignsModule,
-    AirdropsModule
+    AirdropsModule,
+    WithdrawsModule
   ],
   providers: [
     { provide: APP_FILTER, useClass: I18nAllExceptionFilter },
