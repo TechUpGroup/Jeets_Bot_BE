@@ -23,6 +23,7 @@ import { TIMESTAM_HOUR } from "common/constants/asset";
 import { HoldersService } from "modules/holders/holders.service";
 import { EVENT_CAMPAGIN_HISTORIES, EVENT_SCORE } from "common/constants/event";
 import { CampaignsService } from "modules/campaigns/campaigns.service";
+import { LogsService } from "modules/logs/logs.service";
 
 @Injectable()
 export class UsersService {
@@ -38,6 +39,7 @@ export class UsersService {
     @Inject(forwardRef(() => CampaignsService))
     private readonly campaignsService: CampaignsService,
     private readonly holdersService: HoldersService,
+    private readonly logsService: LogsService,
   ) {}
 
   async queryUsers(filter: any, options: any) {
@@ -286,7 +288,7 @@ export class UsersService {
 
       return userInfo;
     } catch (error) {
-      console.error("Error:", error.message);
+      this.logsService.createLog("Error:", error.message);
       throw new BadRequestException("Internal Server Error");
     }
   }
