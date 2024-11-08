@@ -13,6 +13,7 @@ import { EVENT_CAMPAGIN_HISTORIES, EVENT_SCORE, EVENT_TOKEN } from "common/const
 import { UsersService } from "modules/users/users.service";
 import BigNumber from "bignumber.js";
 import { CampaignsService } from "modules/campaigns/campaigns.service";
+import { AMOUNT_PER_SCORE } from "common/constants/asset";
 
 const acceptEvents = [];
 
@@ -82,7 +83,7 @@ export class JobSyncEventTokenService {
         });
         let minusScore = +BigNumber(amount || "0")
           .dividedBy(
-            BigNumber("10000")
+            BigNumber(AMOUNT_PER_SCORE)
               .multipliedBy(Math.pow(10, decimal || 6))
               .toFixed(0),
           )

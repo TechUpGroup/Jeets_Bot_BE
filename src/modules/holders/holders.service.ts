@@ -9,6 +9,7 @@ import { UsersDocument } from "modules/users/schemas/users.schema";
 import { ContractName } from "common/constants/contract";
 import BigNumber from "bignumber.js";
 import { ContractsService } from "modules/contracts/contracts.service";
+import { AMOUNT_PER_SCORE } from "common/constants/asset";
 
 @Injectable()
 export class HoldersService {
@@ -55,9 +56,38 @@ export class HoldersService {
       this.userHolder(user),
       this.contractsService.getContractInfosByName(ContractName.TOKEN),
     ]);
-    if (!holders.length || holders.every(a => BigNumber(a.amount.toString()).lt(holdRequires[a.mint]))) {
+    if (!holders.length || holders.every((a) => BigNumber(a.amount.toString()).lt(holdRequires[a.mint]))) {
       return false;
     }
     return true;
+  }
+
+  async startTotalScore(user: UsersDocument) {
+    const [holders, { symbols, decimals }] = await Promise.all([
+      this.userHolder(user),
+      this.contractsService.getContractInfosByName(ContractName.TOKEN),
+    ]);
+    let totalSscore = 0;
+    const tokenInfos: any = {};
+    for (const holder of holders) {
+      const score = +
+        BigNumber(holder.amount.toString())
+          .dividedBy(
+            BigNumber(AMOUNT_PER_SCORE)
+              .multipliedBy(Math.pow(10, decimals[holder.mint] || 6))
+              .toFixed(0),
+          )
+          .toFixed(decimals[holder.mint] || 6);
+      totalSscore = totalSscore + score;
+      tokenInfos.push({
+        mint: holder.mint,
+        symbol: symbols[holder.mint],
+        decimal: decimals[holder.mint],
+        amount: holder.amount.toString(),
+        score
+      });
+      
+    }
+    return { totalSscore, tokenInfos };
   }
 }

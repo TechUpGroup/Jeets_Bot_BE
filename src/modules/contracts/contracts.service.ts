@@ -57,11 +57,13 @@ export class ContractsService {
     const res = await this.getAllContractsByName(name);
     const holdRequires: any = {};
     const symbols: any = {};
+    const decimals: any = {};
     res.forEach((a) => {
       holdRequires[a.contract_address] = a.require_hold;
       symbols[a.contract_address] = a.symbol;
+      decimals[a.contract_address] = a.decimal;
     });
-    return { holdRequires, symbols };
+    return { holdRequires, symbols, decimals };
   }
 
   async getListHoldTokenRequire(query: ContractsDto) {

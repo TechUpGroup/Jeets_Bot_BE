@@ -11,11 +11,18 @@ import { ConnectTelegramDto, ConnectTwitterDto } from "./dto/twitter.dto";
 import { XService } from "modules/_shared/x/x.service";
 import { ContractsService } from "modules/contracts/contracts.service";
 import { MissionsService } from "modules/missions/missions.service";
-import { USER_SCORE_HISTORIES_MODEL, UserScoreHistories, UserScoreHistoriesDocument } from "./schemas/user-score-histories.schema";
+import {
+  USER_SCORE_HISTORIES_MODEL,
+  UserScoreHistories,
+  UserScoreHistoriesDocument,
+} from "./schemas/user-score-histories.schema";
 import { LeaderboardDto } from "./dto/user.dto";
 import { LEADERBOARD_TYPE } from "common/enums/common";
 import config from "common/config";
 import { TIMESTAM_HOUR } from "common/constants/asset";
+import { HoldersService } from "modules/holders/holders.service";
+import { EVENT_CAMPAGIN_HISTORIES, EVENT_SCORE } from "common/constants/event";
+import { CampaignsService } from "modules/campaigns/campaigns.service";
 
 @Injectable()
 export class UsersService {
@@ -28,6 +35,9 @@ export class UsersService {
     private readonly contractsService: ContractsService,
     @Inject(forwardRef(() => MissionsService))
     private readonly missionsService: MissionsService,
+    @Inject(forwardRef(() => CampaignsService))
+    private readonly campaignsService: CampaignsService,
+    private readonly holdersService: HoldersService,
   ) {}
 
   async queryUsers(filter: any, options: any) {
@@ -64,7 +74,9 @@ export class UsersService {
   }
 
   getAllUsersVerified() {
-    return this.usersModel.find({ $and: [{ twitter_verified_type: { $exists: true }}, { twitter_verified_type: { $ne: "none" }}]});
+    return this.usersModel.find({
+      $and: [{ twitter_verified_type: { $exists: true } }, { twitter_verified_type: { $ne: "none" } }],
+    });
   }
 
   async getUser(id: string) {
@@ -100,7 +112,11 @@ export class UsersService {
   }
 
   async getUserSocialConnectedByAddresses(addresses: string[]) {
-    return this.usersModel.find({ address: { $in: addresses }, telegram_uid: { $exists: true }, twitter_uid: { $exists: true } });
+    return this.usersModel.find({
+      address: { $in: addresses },
+      telegram_uid: { $exists: true },
+      twitter_uid: { $exists: true },
+    });
   }
 
   async findUserByAddress(address: string) {
@@ -187,7 +203,7 @@ export class UsersService {
             symbol: res.symbol,
             decimal: res.decimal,
             amount: (res.require_hold || "0").toString(),
-          }
+          },
         },
         { new: true },
       );
@@ -225,12 +241,48 @@ export class UsersService {
     }
 
     try {
-      await this.usersModel.findByIdAndUpdate(user._id, {
-        $set: {
-          telegram_uid: userInfo.id,
-          telegram_username: userInfo.username,
-        },
-      });
+      let score = 0;
+      const  bulkCreate :any[] = [];
+      if (user?.twitter_uid) {
+        const scoreInfo = await this.holdersService.startTotalScore(user);
+        score = scoreInfo.totalSscore;
+        for (const tokenInfo of scoreInfo.tokenInfos) {
+          bulkCreate.push({
+            event: EVENT_CAMPAGIN_HISTORIES.START_HOLD,
+            address: user.address,
+            cid: 0,
+            start_holders: [],
+            detail: {
+              mint: tokenInfo.mint,
+              amount: tokenInfo.amount,
+              symbol: tokenInfo.symbol,
+              decimal: tokenInfo.decimal,
+            },
+            score:  tokenInfo.score,
+            status: false,
+          });
+        }
+      }
+      await Promise.all([
+        this.usersModel.findByIdAndUpdate(user._id, {
+          $set: {
+            telegram_uid: userInfo.id,
+            telegram_username: userInfo.username,
+            score,
+          },
+        }),
+        score
+          ? this.saveUserScoreHistories({
+              address: user.address,
+              event: EVENT_SCORE.START_HOLD_TOKEN,
+              score,
+              timestamp: Date.now(),
+            })
+          : undefined,
+        score
+          ? this.campaignsService.saveUserCampagignHistories(bulkCreate)
+          : undefined,
+      ]);
 
       return userInfo;
     } catch (error) {
@@ -312,8 +364,45 @@ export class UsersService {
       userInfo.twitter_avatar = userMe.data?.profile_image_url || "";
       userInfo.twitter_verified_type = userMe.data?.verified_type || "";
       userInfo.twitter_followers_count = userMe.data?.public_metrics?.followers_count || 0;
+      let score = 0;
+      const  bulkCreate :any[] = [];
+      if (user?.telegram_uid) {
+        const scoreInfo = await this.holdersService.startTotalScore(user);
+        score = scoreInfo.totalSscore;
+        userInfo.score = score;
+        for (const tokenInfo of scoreInfo.tokenInfos) {
+          bulkCreate.push({
+            event: EVENT_CAMPAGIN_HISTORIES.START_HOLD,
+            address: user.address,
+            cid: 0,
+            start_holders: [],
+            detail: {
+              mint: tokenInfo.mint,
+              amount: tokenInfo.amount,
+              symbol: tokenInfo.symbol,
+              decimal: tokenInfo.decimal,
+            },
+            score:  tokenInfo.score,
+            status: false,
+          });
+        }
+      }
+      await Promise.all([
+        userInfo.save(),
+        score
+          ? this.saveUserScoreHistories({
+              address: user.address,
+              event: EVENT_SCORE.START_HOLD_TOKEN,
+              score,
+              timestamp: Date.now(),
+            })
+          : undefined,
+        score
+          ? this.campaignsService.saveUserCampagignHistories(bulkCreate)
+          : undefined,
+      ]);
     }
-    return await userInfo.save();
+    return userInfo;
   }
 
   // score
@@ -394,14 +483,16 @@ export class UsersService {
     const topScores: any[] = [];
     datas.forEach((a, i) => {
       const u = userInfos.find((b) => b.address === a._id);
-      if (u?.twitter_uid) {{
-        topScores.push( {
-          twitter_username: u?.twitter_username,
-          twitter_avatar: u?.twitter_avatar,
-          totalScore: a.totalScore,
-          rank: i + 1,
-        });
-      }}
+      if (u?.twitter_uid) {
+        {
+          topScores.push({
+            twitter_username: u?.twitter_username,
+            twitter_avatar: u?.twitter_avatar,
+            totalScore: a.totalScore,
+            rank: i + 1,
+          });
+        }
+      }
     });
     return {
       user: {
@@ -413,7 +504,4 @@ export class UsersService {
       topScores: topScores.slice(0, 100),
     };
   }
-
-
-
 }
