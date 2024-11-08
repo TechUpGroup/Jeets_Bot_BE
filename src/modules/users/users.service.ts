@@ -113,7 +113,6 @@ export class UsersService {
 
   async getUserSocialConnectedByAddresses(addresses: string[]) {
     return this.usersModel.find({
-      address: { $in: addresses },
       $and: [
         { address: { $in: addresses } },
         { twitter_verified_type: { $exists: true } }, 
