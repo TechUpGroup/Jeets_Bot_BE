@@ -68,7 +68,7 @@ export class HoldersService {
       this.contractsService.getContractInfosByName(ContractName.TOKEN),
     ]);
     let totalSscore = 0;
-    const tokenInfos: any = {};
+    const tokenInfos: any[] = [];
     for (const holder of holders) {
       const score = +
         BigNumber(holder.amount.toString())
