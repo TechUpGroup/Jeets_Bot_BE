@@ -70,23 +70,21 @@ export class HoldersService {
     let totalSscore = 0;
     const tokenInfos: any[] = [];
     for (const holder of holders) {
-      const score = +
-        BigNumber(holder.amount.toString())
-          .dividedBy(
-            BigNumber(AMOUNT_PER_SCORE)
-              .multipliedBy(Math.pow(10, decimals[holder.mint] || 6))
-              .toFixed(0),
-          )
-          .toFixed(decimals[holder.mint] || 6);
+      const score = +BigNumber(holder.amount.toString())
+        .dividedBy(
+          BigNumber(AMOUNT_PER_SCORE)
+            .multipliedBy(Math.pow(10, decimals[holder.mint] || 6))
+            .toFixed(0),
+        )
+        .toFixed(decimals[holder.mint] || 6);
       totalSscore = totalSscore + score;
       tokenInfos.push({
         mint: holder.mint,
         symbol: symbols[holder.mint],
         decimal: decimals[holder.mint],
         amount: holder.amount.toString(),
-        score
+        score,
       });
-      
     }
     return { totalSscore, tokenInfos };
   }
