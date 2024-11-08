@@ -22,12 +22,14 @@ export enum EVENT_CAMPAGIN_HISTORIES {
   BUY = "Bought",
   SELL = "Sold",
   VOTED = "Voted",
+  START_HOLD = "StartHold",
 }
 
 export enum EVENT_SCORE {
   VOTING = "Voting",
   CAMPAIGN_HOLD_TOKEN = "CampaignHoldToken",
   TRANSFER_TOKEN = "TransferToken",
+  START_HOLD_TOKEN = "StartHoldToken",
 }
 
 export const messageErr = "query returned more than 10000 results";
