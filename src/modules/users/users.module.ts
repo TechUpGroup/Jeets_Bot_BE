@@ -10,6 +10,7 @@ import { ContractsModule } from "modules/contracts/contracts.module";
 import { HoldersModule } from "modules/holders/holders.module";
 import { MissionsModule } from "modules/missions/missions.module";
 import { USER_SCORE_HISTORIES_MODEL, UserScoreHistoriesSchema } from "./schemas/user-score-histories.schema";
+import { CampaignsModule } from "modules/campaigns/campaigns.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { USER_SCORE_HISTORIES_MODEL, UserScoreHistoriesSchema } from "./schemas/
     MongooseModule.forFeature([{ name: USER_SCORE_HISTORIES_MODEL, schema: UserScoreHistoriesSchema }]),
     forwardRef(() => AuthModule),
     forwardRef(() => HoldersModule),
+    forwardRef(() => CampaignsModule),
     ContractsModule,
     MissionsModule
   ],
