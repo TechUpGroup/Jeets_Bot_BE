@@ -981,7 +981,7 @@ export type Voting = {
 };
 
 export type VaultSolana = {
-  "address": "FfKTZTxrmHGtwEvQxp4jVKm6p5mX6gkVnohLzVdJYQfP",
+  "address": "6Y9kXEKtrL2oPnkWJt76oEpmhK8gLNM3KspEtfuJWhp6",
   "metadata": {
     "name": "vaultSolana",
     "version": "0.1.0",
