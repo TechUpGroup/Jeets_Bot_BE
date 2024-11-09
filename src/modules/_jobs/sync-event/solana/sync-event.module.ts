@@ -11,6 +11,7 @@ import { JobSyncEventAirdropService } from "./services/sync-event-airdrop.servic
 import { AirdropsModule } from "modules/airdrops/airdrops.module";
 import { CampaignsModule } from "modules/campaigns/campaigns.module";
 import { WithdrawsModule } from "modules/withdraw/withdraw.module";
+import { JobSyncEventChadService } from "./services/sync-event-chad.service";
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { WithdrawsModule } from "modules/withdraw/withdraw.module";
     JobSyncEventVotingService,
     JobSyncEventTokenService,
     JobSyncEventAirdropService,
+    JobSyncEventChadService,
   ],
 })
 export class SyncEventSolanaModule {}

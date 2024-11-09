@@ -67,14 +67,14 @@ export class SolanasService {
     this.solanaMap = new Map<Network, SolanaProvider>();
     this.programMap = new Map<string, anchor.Program<ScJeetsSol>>();
     for (const network of allNetworks) {
-      const connection: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "recent");
-      const connectionConfirmed: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "confirmed");
+      const connection: web3.Connection = new web3.Connection("https://wispy-billowing-resonance.solana-devnet.quiknode.pro/dc84eebf3a01ab87a20716e0095e09906f0a8e40", "recent");
+      const connectionConfirmed: web3.Connection = new web3.Connection("https://fragrant-blissful-star.solana-devnet.quiknode.pro/5629d355a6f0bed5c3b119832967d4639481e5a4", "confirmed");
 
-      const connectionVoting: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "recent");
-      const connectionConfirmedVoting: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "confirmed");
+      const connectionVoting: web3.Connection = new web3.Connection("https://wispy-billowing-resonance.solana-devnet.quiknode.pro/dc84eebf3a01ab87a20716e0095e09906f0a8e40", "recent");
+      const connectionConfirmedVoting: web3.Connection = new web3.Connection("https://wispy-billowing-resonance.solana-devnet.quiknode.pro/dc84eebf3a01ab87a20716e0095e09906f0a8e40", "confirmed");
 
-      const connectionAirdrop: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "recent");
-      const connectionConfirmedAirdrop: web3.Connection = new web3.Connection("https://patient-newest-bush.solana-devnet.quiknode.pro/5dc6d8e8a0f154fb2423f9fee9f799581276e32f", "confirmed");
+      const connectionAirdrop: web3.Connection = new web3.Connection("https://wispy-billowing-resonance.solana-devnet.quiknode.pro/dc84eebf3a01ab87a20716e0095e09906f0a8e40", "recent");
+      const connectionConfirmedAirdrop: web3.Connection = new web3.Connection("https://wispy-billowing-resonance.solana-devnet.quiknode.pro/dc84eebf3a01ab87a20716e0095e09906f0a8e40", "confirmed");
 
       const signerTypes = new Map<SignerType, web3.Keypair>();
       const { operator, authority } = config.getBlockchainPrivateKey(network);
@@ -732,15 +732,16 @@ export class SolanasService {
             instruction?.program === "system" && instruction?.parsed?.type === "transfer"
           ) {
             const { info } = instruction.parsed;
-            allEvents.push({
-              event: EVENT_CHAD.DEPOSITED,
-              transactionHash: tx.transaction.signatures[0],
-              logIndex: 1,
-              blockTime: tx.blockTime || 0,
-              amount: info?.tokenAmount?.amount || 0,
-              from: info?.source,
-              to: info?.destination,
-            });
+            if (info?.destination === mintAddress.toString()) {
+              allEvents.push({
+                event: EVENT_CHAD.DEPOSITED,
+                transactionHash: tx.transaction.signatures[0],
+                logIndex: 1,
+                blockTime: tx.blockTime || 0,
+                amount: info?.lamports || 0,
+                account: info?.source,
+              });
+            }
           }
         }
       }

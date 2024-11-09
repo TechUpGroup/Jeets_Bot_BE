@@ -12,7 +12,6 @@ import { SolanasService } from "modules/_shared/services/solana.service";
 import { Network } from "common/enums/network.enum";
 import { vaultIDL } from "common/idl/pool";
 import { IEventParams } from "../interfaces/helper-solana.interface";
-import { AirdropsService } from "modules/airdrops/airdrops.service";
 import { UsersService } from "modules/users/users.service";
 import { WithdrawsService } from "modules/withdraw/withdraw.service";
 const acceptEvents = [EVENT_CHAD.DEPOSITED, EVENT_CHAD.CLAIMED];
@@ -61,6 +60,7 @@ export class JobSyncEventChadService {
       if (this.isRunning[contract.contract_address]) continue;
       this.isRunning[contract.contract_address] = true;
       try {
+        vaultIDL.address = contract.contract_address; 
         const eventParser = this.solanasService.eventParserAirdrop(Network.solana, vaultIDL);
         await this.helperService.excuteSync({
           contract,
@@ -89,7 +89,7 @@ export class JobSyncEventChadService {
       const bulkDeposited: any[] = [];
       const bulkUpdateClaimed: any[] = [];
       for (const event of events) {
-        const { blockTime, transactionHash, logIndex, nonce } = event;
+        const { blockTime, transactionHash, logIndex } = event;
         const history = {
           transaction_hash: transactionHash,
           network,

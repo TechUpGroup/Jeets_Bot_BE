@@ -4,9 +4,11 @@ export enum TOPIC {
 }
 
 export const ETH_DECIMAL_SYMBOL = 18
+export const SOL_DECIMAL_SYMBOL = 9
 export const TOKEN_DECIMAL_SYMBOL = 18
 
 export const ETH_DECIMAL = 1e18;
+export const SOL_DECIMAL = 1e9;
 export const TOKEN_DECIMAL = 1e6;
 export const INIT_PRICE = 0.00000000025;
 export const THRESHOLD_MARKET_CAP = 690;
@@ -17,8 +19,8 @@ export const AIRDROP_AMOUNT = 1000000 * TOKEN_DECIMAL;
 export const THRESHOLD_HOLD_TOKEN = 2000;
 export const THRESHOLD_FOLLOWERS = 1000;
 export const AMOUNT_PER_SCORE = 10000;
-export const TOTAL_TOKEN_PER_AMOUNT = 1000;
-export const TOTAL_AMOUNT_PER_DEPOSIT = 1;
+export const TOTAL_TOKEN_PER_AMOUNT = 1000 * TOKEN_DECIMAL;
+export const TOTAL_AMOUNT_PER_DEPOSIT = 1 * SOL_DECIMAL;
 
 
 export const TIMESTAM_MINUTE = 60000;

@@ -199,10 +199,10 @@ class Config {
       "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG"
     ]
     const chadClaimeds = [
-      "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG"
+      "FfKTZTxrmHGtwEvQxp4jVKm6p5mX6gkVnohLzVdJYQfP"
     ]
     const chadDeposteds = [
-      "5wy9QZQvvGu8kh2BrN69rxxYsMi7Y3y971WX1x5dmpoG"
+      "8CpY9fKokM5mBrVWtNGL6cjucZj1UGuYVjgHcskTJaa2"
     ]
     return {
       pools,
